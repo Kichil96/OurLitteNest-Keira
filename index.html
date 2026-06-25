@@ -116,7 +116,6 @@
 
     <script>
         // Configuration & State
-        // Linked directly to your live published web CSV endpoint
         const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQNFbJjjGDrZb4lrKTxM_VSXCaJG-g20AV41NqdjWpZD-rpA0QNX9SbfvqI-y1gncXu1xTl-sg0KZdM/pub?output=csv';
 
         let rawTransactions = [];
@@ -124,9 +123,50 @@
         let categoryChartInst = null;
         let monthlyChartInst = null;
 
-        // On Load initialization optimized for iOS response
+        // Custom function to handle Malaysian DD/MM/YYYY date strings cleanly
+        function parseFlexibleDate(dateStr) {
+            if (!dateStr) return null;
+            
+            // Try standard parse first
+            let standardDate = new Date(dateStr);
+            if (!isNaN(standardDate)) return standardDate;
+            
+            // Fallback for DD/MM/YYYY formats
+            try {
+                const parts = dateStr.split(' ');
+                const dateParts = parts[0].split(/[-/]/);
+                
+                if (dateParts.length === 3) {
+                    let day, month, year;
+                    
+                    if (dateParts[0].length === 4) { // YYYY-MM-DD
+                        year = parseInt(dateParts[0], 10);
+                        month = parseInt(dateParts[1], 10) - 1;
+                        day = parseInt(dateParts[2], 10);
+                    } else { // DD/MM/YYYY
+                        day = parseInt(dateParts[0], 10);
+                        month = parseInt(dateParts[1], 10) - 1;
+                        year = parseInt(dateParts[2], 10);
+                    }
+                    
+                    let hour = 0, minute = 0, second = 0;
+                    if (parts[1]) {
+                        const timeParts = parts[1].split(':');
+                        hour = parseInt(timeParts[0], 10) || 0;
+                        minute = parseInt(timeParts[1], 10) || 0;
+                        second = parseInt(timeParts[2], 10) || 0;
+                    }
+                    
+                    const finalDate = new Date(year, month, day, hour, minute, second);
+                    if (!isNaN(finalDate)) return finalDate;
+                }
+            } catch (e) {
+                console.error("Failed to parse row date:", dateStr);
+            }
+            return null;
+        }
+
         window.addEventListener('DOMContentLoaded', () => {
-            // Default current month ranges into filter fields
             const now = new Date();
             const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
             const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
@@ -151,30 +191,25 @@
             }
         }
 
-        // CSV parsing built directly without third-party dependencies to keep load times short
         async function fetchData() {
             try {
                 const response = await fetch(CSV_URL);
                 const data = await response.text();
                 
-                // Parse CSV rows cleanly handling escaped characters
                 const lines = data.split('\n').map(line => line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || []);
                 rawTransactions = [];
 
-                // Skip header (i=0) and loop through data rows
                 for(let i = 1; i < lines.length; i++) {
                     const row = lines[i].map(val => val.replace(/^"|"$/g, '').trim());
                     if (row.length >= 4) {
-                        // Expected schema: [0] Timestamp, [1] Amount (RM), [2] Description, [3] Category
                         const timestampStr = row[0];
                         const amount = parseFloat(row[1].replace(/RM/g, '').replace(/,/g, '')) || 0;
                         const description = row[2] || 'Unspecified';
                         const category = row[3] || 'Other';
 
-                        // Convert Google Sheet date string format to JS Object
-                        const parsedDate = new Date(timestampStr);
+                        const parsedDate = parseFlexibleDate(timestampStr);
 
-                        if(!isNaN(parsedDate)) {
+                        if(parsedDate) {
                             rawTransactions.push({
                                 date: parsedDate,
                                 amount: amount,
@@ -185,7 +220,6 @@
                     }
                 }
 
-                // Sort newest items first
                 rawTransactions.sort((a, b) => b.date - a.date);
                 filterData();
 
@@ -202,7 +236,6 @@
             const start = startStr ? new Date(startStr + 'T00:00:00') : null;
             const end = endStr ? new Date(endStr + 'T23:59:59') : null;
 
-            // Filter subset based on selected calendar window
             const filtered = rawTransactions.filter(t => {
                 if (start && t.date < start) return false;
                 if (end && t.date > end) return false;
@@ -216,13 +249,11 @@
             let totalSpent = 0;
             const categorySums = {};
 
-            // Accumulate metrics
             data.forEach(t => {
                 totalSpent += t.amount;
                 categorySums[t.category] = (categorySums[t.category] || 0) + t.amount;
             });
 
-            // Card calculations
             document.getElementById('totalSpentCard').innerText = `RM ${totalSpent.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
             
             const statusContainer = document.getElementById('statusContainer');
@@ -230,14 +261,12 @@
             const statusValueCard = document.getElementById('statusValueCard');
 
             if (totalSpent > currentBudget) {
-                // Budget burst state alert matching premium warning styling
                 statusContainer.className = "bg-red-50 p-4 rounded-2xl shadow-sm border border-red-200 flex flex-col justify-between transition-colors duration-300";
                 statusLabel.innerText = "Budget Status";
                 statusLabel.className = "text-xs font-bold text-red-500 uppercase tracking-wide";
                 statusValueCard.innerText = "⚠️ Budget Burst!";
                 statusValueCard.className = "text-lg font-black text-red-600 mt-2";
             } else {
-                // Safe steady budget mode
                 statusContainer.className = "bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between transition-colors duration-300";
                 statusLabel.innerText = "Remaining Balance";
                 statusLabel.className = "text-xs font-medium text-slate-400";
@@ -246,15 +275,13 @@
                 statusValueCard.className = "text-lg font-bold text-slate-900 mt-2";
             }
 
-            // Render visuals & lists
             renderDoughnutChart(categorySums);
-            renderMonthlyChart(rawTransactions); // Historical chart evaluates total pool
+            renderMonthlyChart(rawTransactions);
             renderTransactionFeed(data);
         }
 
         function renderDoughnutChart(categoryData) {
             const ctx = document.getElementById('categoryChart').getContext('2d');
-            
             const labels = Object.keys(categoryData);
             const dataValues = Object.values(categoryData);
 
@@ -296,16 +323,14 @@
 
         function renderMonthlyChart(allData) {
             const ctx = document.getElementById('monthlyChart').getContext('2d');
-            
-            // Map data to month bins
             const monthlyTotals = {};
+            
             allData.forEach(t => {
                 const monthLabel = t.date.toLocaleString('default', { month: 'short', year: '2-digit' });
                 monthlyTotals[monthLabel] = (monthlyTotals[monthLabel] || 0) + t.amount;
             });
 
-            // Sort months in order
-            const labels = Object.keys(monthlyTotals).reverse().slice(-6); // Cap last 6 recorded active months
+            const labels = Object.keys(monthlyTotals).reverse().slice(-6);
             const dataValues = labels.map(lbl => monthlyTotals[lbl]);
 
             if (monthlyChartInst) monthlyChartInst.destroy();
