@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 
-<!-- Prevents Google and other search engines from finding or indexing this website -->
 <meta name="robots" content="noindex, nofollow">
 <meta name="googlebot" content="noindex, nofollow">
 
@@ -396,7 +395,6 @@
     </div>
   </div>
 
-  <!-- Balance hero -->
   <div class="card balance-card" style="margin-bottom:14px;">
     <span class="badge" id="statusBadge">On track</span>
     <p class="t" id="statusLabel">Remaining Balance</p>
@@ -405,7 +403,6 @@
     <div class="gauge"><div class="gauge-fill" id="gaugeFill" style="width:0%"></div></div>
   </div>
 
-  <!-- KPI bento -->
   <div class="bento">
     <div class="card stat-tile">
       <div class="icon-chip" style="background:#EEF0FF; color:var(--c1);">💸</div>
@@ -419,7 +416,6 @@
     </div>
   </div>
 
-  <!-- Donut breakdown -->
   <div class="card donut-card span2" style="margin-bottom:14px;">
     <div class="head">
       <h2>Where it went</h2>
@@ -435,7 +431,6 @@
     <div class="legend-grid" id="legendGrid"></div>
   </div>
 
-  <!-- Monthly trend -->
   <div class="card bar-card span2" style="margin-bottom:14px;">
     <div class="head">
       <h2>Monthly trend</h2>
@@ -443,13 +438,11 @@
     <div class="trend-wrap"><canvas id="monthlyChart"></canvas></div>
   </div>
 
-  <!-- Ranked category bars -->
   <div class="card rank-card span2" style="margin-bottom:14px;">
     <h2>Category breakdown</h2>
     <div id="categoryList"></div>
   </div>
 
-  <!-- Recent transactions -->
   <div class="card txn-card span2">
     <h2>Recent activity</h2>
     <div id="transactionList" class="scroller">
@@ -555,10 +548,32 @@
 
   window.addEventListener('DOMContentLoaded', () => {
     const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-    const lastDay = new Date(now.getFullYear(), now.getMonth()+1, 0).toISOString().split('T')[0];
-    document.getElementById('startDate').value = firstDay;
-    document.getElementById('endDate').value = lastDay;
+    let startYear = now.getFullYear();
+    let startMonth = now.getMonth(); // 0-indexed (0=Jan, 5=Jun, etc.)
+    
+    // Cycle check: If today is before the 25th, our cycle began on the 25th of PREVIOUS month.
+    if (now.getDate() < 25) {
+      startMonth = startMonth - 1;
+      if (startMonth < 0) {
+        startMonth = 11;
+        startYear = startYear - 1;
+      }
+    }
+    
+    // Calculate precise start and end objects for the custom cycle range
+    const cycleStart = new Date(startYear, startMonth, 25);
+    const cycleEnd = new Date(startYear, startMonth + 1, 24);
+
+    // Format fields cleanly into input value targets (YYYY-MM-DD)
+    const fmtInputDate = (d) => {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    };
+
+    document.getElementById('startDate').value = fmtInputDate(cycleStart);
+    document.getElementById('endDate').value = fmtInputDate(cycleEnd);
     fetchData();
   });
 
