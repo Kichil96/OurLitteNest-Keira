@@ -1,384 +1,632 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    
-    <!-- Prevents Google and other search engines from finding or indexing this website -->
-    <meta name="robots" content="noindex, nofollow">
-    <meta name="googlebot" content="noindex, nofollow">
-    
-    <title>Our Little Nest</title>
-    <!-- Tailwind CSS for modern styling -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js for smooth interactive charts -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- FontAwesome for clean mobile icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        body {
-            -webkit-tap-highlight-color: transparent;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        }
-        /* Custom smooth scrollbar for transactions */
-        .custom-scroll::-webkit-scrollbar {
-            width: 4px;
-        }
-        .custom-scroll::-webkit-scrollbar-thumb {
-            background-color: #cbd5e1;
-            border-radius: 4px;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
+<!-- Prevents Google and other search engines from finding or indexing this website -->
+<meta name="robots" content="noindex, nofollow">
+<meta name="googlebot" content="noindex, nofollow">
+
+<title>Our Little Nest</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap');
+
+  :root{
+    --paper:      #FAF8F5;
+    --paper-dim:  #F2EFE9;
+    --ink:        #1C1B19;
+    --ink-soft:   #6B6660;
+    --rule:       #E4DFD6;
+    --clay:       #B5532C;
+    --clay-soft:  #F2E2D8;
+    --sage:       #5C7A5C;
+    --sage-soft:  #E6ECE3;
+  }
+
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+    padding-bottom:48px;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .serif{ font-family:'Fraunces',serif; }
+
+  .nums{
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ===== Header ===== */
+  header{
+    padding:28px 22px 18px;
+    max-width:480px;
+    margin:0 auto;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+  }
+  header .eyebrow{
+    font-size:10px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    font-weight:600;
+    margin:0 0 4px;
+  }
+  header h1{
+    font-family:'Fraunces',serif;
+    font-weight:500;
+    font-size:26px;
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+  .icon-btn{
+    width:36px; height:36px;
+    border-radius:50%;
+    border:1px solid var(--rule);
+    background:transparent;
+    color:var(--ink-soft);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    transition: background .15s, transform .1s;
+  }
+  .icon-btn:active{ transform:scale(0.94); background:var(--paper-dim); }
+  .icon-btn svg{ width:16px; height:16px; }
+
+  main{
+    max-width:480px;
+    margin:0 auto;
+    padding:0 22px;
+  }
+
+  /* ===== Budget Editor (inline reveal) ===== */
+  #budgetModal{
+    margin-bottom:18px;
+    border-top:1px solid var(--rule);
+    border-bottom:1px solid var(--rule);
+    padding:16px 0;
+    display:none;
+  }
+  #budgetModal.open{ display:block; }
+  #budgetModal .row{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px; }
+  #budgetModal label{ font-size:12px; color:var(--ink-soft); font-weight:500; }
+  #budgetModal .close-link{ font-size:12px; color:var(--ink-soft); background:none; border:none; cursor:pointer; text-decoration:underline; padding:0; }
+  .budget-edit-row{ display:flex; gap:8px; align-items:center; }
+  .budget-edit-row .prefix{ font-family:'Fraunces',serif; font-size:18px; color:var(--ink-soft); }
+  #budgetInput{
+    flex:1;
+    background:transparent;
+    border:none;
+    border-bottom:1px solid var(--ink);
+    font-family:'Fraunces',serif;
+    font-size:22px;
+    padding:4px 0;
+    color:var(--ink);
+    outline:none;
+  }
+  .save-btn{
+    background:var(--ink);
+    color:var(--paper);
+    border:none;
+    border-radius:20px;
+    padding:9px 18px;
+    font-size:12px;
+    font-weight:600;
+    cursor:pointer;
+    transition: opacity .15s, transform .1s;
+  }
+  .save-btn:active{ transform:scale(0.96); opacity:0.85; }
+
+  /* ===== Date Range ===== */
+  .date-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:14px 0 18px;
+    border-bottom:1px solid var(--rule);
+    margin-bottom:22px;
+  }
+  .date-field{ flex:1; }
+  .date-field label{
+    display:block;
+    font-size:9.5px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    font-weight:600;
+    margin-bottom:3px;
+  }
+  .date-field input[type="date"]{
+    width:100%;
+    border:none;
+    background:transparent;
+    font-family:'Inter',sans-serif;
+    font-size:13.5px;
+    font-weight:600;
+    color:var(--ink);
+    padding:0;
+    outline:none;
+  }
+  .date-sep{ color:var(--rule); font-size:14px; margin-top:14px; }
+
+  /* ===== Hero Balance ===== */
+  .hero{
+    text-align:center;
+    padding:6px 0 26px;
+  }
+  .hero .label{
+    font-size:11px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    font-weight:600;
+    margin:0 0 10px;
+    transition: color .25s;
+  }
+  .hero .balance{
+    font-family:'Fraunces',serif;
+    font-weight:500;
+    font-size:46px;
+    line-height:1;
+    margin:0;
+    letter-spacing:-0.015em;
+    transition: color .25s;
+  }
+  .hero .balance.burst{ color:var(--clay); }
+  .hero .sub{
+    font-size:12px;
+    color:var(--ink-soft);
+    margin:10px 0 0;
+  }
+
+  /* fuel gauge */
+  .gauge{
+    width:100%;
+    height:3px;
+    background:var(--rule);
+    border-radius:2px;
+    margin-top:18px;
+    overflow:hidden;
+    position:relative;
+  }
+  .gauge-fill{
+    height:100%;
+    background:var(--sage);
+    border-radius:2px;
+    transition: width .4s ease, background .25s ease;
+  }
+  .gauge-fill.burst{ background:var(--clay); }
+
+  /* ===== Spent strip ===== */
+  .strip{
+    display:flex;
+    justify-content:space-between;
+    padding:16px 0;
+    border-bottom:1px solid var(--rule);
+    margin-bottom:28px;
+  }
+  .strip .item{ text-align:left; }
+  .strip .item:last-child{ text-align:right; }
+  .strip .item .t{ font-size:10px; letter-spacing:0.08em; text-transform:uppercase; color:var(--ink-soft); font-weight:600; margin-bottom:4px; }
+  .strip .item .v{ font-family:'Fraunces',serif; font-size:17px; font-weight:500; }
+
+  /* ===== Section heads ===== */
+  .section{ margin-bottom:32px; }
+  .section-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom:16px;
+  }
+  .section-head h2{
+    font-family:'Fraunces',serif;
+    font-weight:500;
+    font-size:16px;
+    margin:0;
+  }
+  .section-head .count{ font-size:11px; color:var(--ink-soft); }
+
+  /* ===== Category list (replaces donut+legend cram) ===== */
+  .cat-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:9px 0;
+  }
+  .cat-row .swatch{ width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+  .cat-row .name{ flex:1; font-size:13px; font-weight:500; }
+  .cat-row .bar-track{
+    flex:1.4;
+    height:5px;
+    background:var(--paper-dim);
+    border-radius:3px;
+    overflow:hidden;
+  }
+  .cat-row .bar-fill{ height:100%; border-radius:3px; }
+  .cat-row .amt{ font-size:12.5px; font-weight:600; width:74px; text-align:right; flex-shrink:0; }
+  .cat-row .pct{ font-size:10.5px; color:var(--ink-soft); width:32px; text-align:right; flex-shrink:0; }
+
+  /* ===== Monthly trend ===== */
+  .trend-wrap{ height:140px; }
+
+  /* ===== Transactions ===== */
+  .txn{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:12px 0;
+    border-bottom:1px solid var(--rule);
+  }
+  .txn:last-child{ border-bottom:none; }
+  .txn .left{ display:flex; flex-direction:column; gap:4px; max-width:66%; }
+  .txn .desc{ font-size:13.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .txn .meta{ display:flex; gap:7px; align-items:center; }
+  .txn .pill{
+    font-size:9.5px;
+    font-weight:600;
+    letter-spacing:0.02em;
+    color:var(--ink-soft);
+    background:var(--paper-dim);
+    padding:2.5px 7px;
+    border-radius:9px;
+  }
+  .txn .date{ font-size:10.5px; color:var(--ink-soft); }
+  .txn .amt{ font-family:'Fraunces',serif; font-size:14.5px; font-weight:500; flex-shrink:0; }
+
+  .empty-state{
+    text-align:center;
+    padding:36px 0;
+    color:var(--ink-soft);
+    font-size:12.5px;
+  }
+
+  /* scrollbar */
+  .scroller{ max-height:340px; overflow-y:auto; }
+  .scroller::-webkit-scrollbar{ width:3px; }
+  .scroller::-webkit-scrollbar-thumb{ background:var(--rule); border-radius:3px; }
+
+  footer{
+    text-align:center;
+    font-size:10.5px;
+    color:var(--ink-soft);
+    padding:20px 0 8px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ transition:none !important; }
+  }
+</style>
 </head>
-<body class="bg-slate-50 text-slate-800 antialiased pb-12">
+<body>
 
-    <!-- Premium iOS-Style Header -->
-    <header class="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-100 pt-4 pb-3 px-4 viewport-fit=cover">
-        <div class="max-w-md mx-auto flex justify-between items-center">
-            <div>
-                <h1 class="text-xl font-bold text-slate-900 tracking-tight">Our Little Nest</h1>
-                <p class="text-xs text-slate-500 font-medium">Keira’s Fam Ledger</p>
-            </div>
-            <!-- Dynamic Budget Control Icon Toggle -->
-            <button onclick="toggleBudgetModal()" class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 active:scale-95 transition">
-                <i class="fa-solid fa-sliders text-sm"></i>
-            </button>
+<header>
+  <div>
+    <p class="eyebrow">Family Ledger</p>
+    <h1>Our Little Nest</h1>
+  </div>
+  <button class="icon-btn" onclick="toggleBudgetModal()" aria-label="Adjust budget">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="9" cy="6" r="1.6" fill="currentColor" stroke="none"/><circle cx="16" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="18" r="1.6" fill="currentColor" stroke="none"/></svg>
+  </button>
+</header>
+
+<main>
+
+  <div id="budgetModal">
+    <div class="row">
+      <label>Monthly budget</label>
+      <button class="close-link" onclick="toggleBudgetModal()">Done</button>
+    </div>
+    <div class="budget-edit-row">
+      <span class="prefix">RM</span>
+      <input type="number" id="budgetInput" value="3360" inputmode="decimal">
+      <button class="save-btn" onclick="updateBudget()">Save</button>
+    </div>
+  </div>
+
+  <div class="date-row">
+    <div class="date-field">
+      <label>From</label>
+      <input type="date" id="startDate" onchange="filterData()">
+    </div>
+    <span class="date-sep">&mdash;</span>
+    <div class="date-field">
+      <label>To</label>
+      <input type="date" id="endDate" onchange="filterData()">
+    </div>
+  </div>
+
+  <div class="hero">
+    <p class="label" id="statusLabel">Remaining Balance</p>
+    <p class="balance nums" id="statusValueCard">RM 0.00</p>
+    <div class="gauge"><div class="gauge-fill" id="gaugeFill" style="width:0%"></div></div>
+    <p class="sub" id="statusSub">of RM 3,360.00 budgeted</p>
+  </div>
+
+  <div class="strip">
+    <div class="item">
+      <div class="t">Total Spent</div>
+      <div class="v nums" id="totalSpentCard">RM 0.00</div>
+    </div>
+    <div class="item">
+      <div class="t">Transactions</div>
+      <div class="v nums" id="txnCount">0</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <h2>By Category</h2>
+      <span class="count" id="catCount"></span>
+    </div>
+    <div id="categoryList"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <h2>Monthly Trend</h2>
+    </div>
+    <div class="trend-wrap"><canvas id="monthlyChart"></canvas></div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <h2>Recent Activity</h2>
+    </div>
+    <div id="transactionList" class="scroller">
+      <p class="empty-state">Fetching logs&hellip;</p>
+    </div>
+  </div>
+
+  <footer>Synced privately from your ledger</footer>
+
+</main>
+
+<script>
+  const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQNFbJjjGDrZb4lrKTxM_VSXCaJG-g20AV41NqdjWpZD-rpA0QNX9SbfvqI-y1gncXu1xTl-sg0KZdM/pub?output=csv';
+
+  // Ledger-toned palette cycle for category swatches (sage/clay family + neutrals)
+  const PALETTE = ['#B5532C','#5C7A5C','#9C8254','#7A6B8C','#4F6B72','#A8743C','#6B6660','#8C5C5C','#5C7A8C','#7A8C5C','#8C6B5C','#6B5C8C','#5C8C7A','#8C7A5C'];
+  function colorFor(idx){ return PALETTE[idx % PALETTE.length]; }
+
+  let rawTransactions = [];
+  let currentBudget = 3360;
+  let monthlyChartInst = null;
+
+  function fmtMoney(n){
+    return `RM ${n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}`;
+  }
+
+  function parseFlexibleDate(dateStr){
+    if(!dateStr) return null;
+    let standardDate = new Date(dateStr);
+    if(!isNaN(standardDate)) return standardDate;
+    try{
+      const parts = dateStr.split(' ');
+      const dateParts = parts[0].split(/[-/]/);
+      if(dateParts.length === 3){
+        let day, month, year;
+        if(dateParts[0].length === 4){
+          year = parseInt(dateParts[0],10); month = parseInt(dateParts[1],10)-1; day = parseInt(dateParts[2],10);
+        } else {
+          day = parseInt(dateParts[0],10); month = parseInt(dateParts[1],10)-1; year = parseInt(dateParts[2],10);
+        }
+        let hour=0, minute=0, second=0;
+        if(parts[1]){
+          const tp = parts[1].split(':');
+          hour = parseInt(tp[0],10) || 0; minute = parseInt(tp[1],10) || 0; second = parseInt(tp[2],10) || 0;
+        }
+        const finalDate = new Date(year, month, day, hour, minute, second);
+        if(!isNaN(finalDate)) return finalDate;
+      }
+    } catch(e){ console.error('Failed to parse row date:', dateStr); }
+    return null;
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+    const lastDay = new Date(now.getFullYear(), now.getMonth()+1, 0).toISOString().split('T')[0];
+    document.getElementById('startDate').value = firstDay;
+    document.getElementById('endDate').value = lastDay;
+    fetchData();
+  });
+
+  function toggleBudgetModal(){
+    document.getElementById('budgetModal').classList.toggle('open');
+  }
+
+  function updateBudget(){
+    const inputVal = document.getElementById('budgetInput').value;
+    if(inputVal && inputVal > 0){
+      currentBudget = parseFloat(inputVal);
+      filterData();
+      toggleBudgetModal();
+    }
+  }
+
+  async function fetchData(){
+    try{
+      const response = await fetch(CSV_URL);
+      const data = await response.text();
+      const lines = data.split('\n').map(line => line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || []);
+      rawTransactions = [];
+
+      for(let i=1; i<lines.length; i++){
+        const row = lines[i].map(val => val.replace(/^"|"$/g,'').trim());
+        if(row.length >= 4){
+          const timestampStr = row[0];
+          const amount = parseFloat(row[1].replace(/RM/g,'').replace(/,/g,'')) || 0;
+          const description = row[2] || 'Unspecified';
+          const category = row[3] || 'Other';
+          const parsedDate = parseFlexibleDate(timestampStr);
+          if(parsedDate){
+            rawTransactions.push({ date: parsedDate, amount, description, category });
+          }
+        }
+      }
+      rawTransactions.sort((a,b) => b.date - a.date);
+      filterData();
+    } catch(error){
+      console.error('Data ingestion failure:', error);
+      document.getElementById('transactionList').innerHTML = `<p class="empty-state">Couldn't reach the ledger. Check your connection and reload.</p>`;
+    }
+  }
+
+  function filterData(){
+    const startStr = document.getElementById('startDate').value;
+    const endStr = document.getElementById('endDate').value;
+    const start = startStr ? new Date(startStr + 'T00:00:00') : null;
+    const end = endStr ? new Date(endStr + 'T23:59:59') : null;
+
+    const filtered = rawTransactions.filter(t => {
+      if(start && t.date < start) return false;
+      if(end && t.date > end) return false;
+      return true;
+    });
+    updateDashboard(filtered);
+  }
+
+  function updateDashboard(data){
+    let totalSpent = 0;
+    const categorySums = {};
+
+    data.forEach(t => {
+      totalSpent += t.amount;
+      categorySums[t.category] = (categorySums[t.category] || 0) + t.amount;
+    });
+
+    document.getElementById('totalSpentCard').innerText = fmtMoney(totalSpent);
+    document.getElementById('txnCount').innerText = data.length;
+
+    const statusLabel = document.getElementById('statusLabel');
+    const statusValueCard = document.getElementById('statusValueCard');
+    const statusSub = document.getElementById('statusSub');
+    const gaugeFill = document.getElementById('gaugeFill');
+
+    const pctUsed = currentBudget > 0 ? Math.min((totalSpent / currentBudget) * 100, 100) : 0;
+    gaugeFill.style.width = pctUsed + '%';
+
+    if(totalSpent > currentBudget){
+      statusLabel.innerText = 'Budget Status';
+      statusValueCard.innerText = '⚠ Budget Burst';
+      statusValueCard.classList.add('burst');
+      gaugeFill.classList.add('burst');
+      statusSub.innerText = `${fmtMoney(totalSpent - currentBudget)} over the ${fmtMoney(currentBudget)} budget`;
+    } else {
+      statusLabel.innerText = 'Remaining Balance';
+      const remainder = currentBudget - totalSpent;
+      statusValueCard.innerText = fmtMoney(remainder);
+      statusValueCard.classList.remove('burst');
+      gaugeFill.classList.remove('burst');
+      statusSub.innerText = `of ${fmtMoney(currentBudget)} budgeted`;
+    }
+
+    renderCategoryList(categorySums, totalSpent);
+    renderMonthlyChart(rawTransactions);
+    renderTransactionFeed(data);
+  }
+
+  function renderCategoryList(categoryData, totalSpent){
+    const wrap = document.getElementById('categoryList');
+    const catCount = document.getElementById('catCount');
+    const entries = Object.entries(categoryData).sort((a,b) => b[1]-a[1]);
+
+    catCount.innerText = entries.length ? `${entries.length} active` : '';
+
+    if(entries.length === 0){
+      wrap.innerHTML = `<p class="empty-state">No spending yet in this range.</p>`;
+      return;
+    }
+
+    const maxVal = entries[0][1];
+
+    wrap.innerHTML = entries.map(([name, val], idx) => {
+      const pct = totalSpent > 0 ? (val/totalSpent*100) : 0;
+      const barPct = maxVal > 0 ? (val/maxVal*100) : 0;
+      const c = colorFor(idx);
+      return `
+        <div class="cat-row">
+          <span class="swatch" style="background:${c}"></span>
+          <span class="name">${name}</span>
+          <span class="bar-track"><span class="bar-fill" style="width:${barPct}%; background:${c}"></span></span>
+          <span class="amt nums">${fmtMoney(val)}</span>
+          <span class="pct">${pct.toFixed(0)}%</span>
+        </div>`;
+    }).join('');
+  }
+
+  function renderMonthlyChart(allData){
+    const ctx = document.getElementById('monthlyChart').getContext('2d');
+    const monthlyTotals = {};
+
+    allData.forEach(t => {
+      const monthLabel = t.date.toLocaleString('default', { month:'short', year:'2-digit' });
+      monthlyTotals[monthLabel] = (monthlyTotals[monthLabel] || 0) + t.amount;
+    });
+
+    const labels = Object.keys(monthlyTotals).reverse().slice(-6);
+    const dataValues = labels.map(lbl => monthlyTotals[lbl]);
+
+    if(monthlyChartInst) monthlyChartInst.destroy();
+
+    monthlyChartInst = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          data: dataValues,
+          backgroundColor: '#B5532C',
+          borderRadius: 4,
+          barThickness: 18
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display:false }, tooltip: {
+          backgroundColor: '#1C1B19',
+          titleFont: { family: 'Inter' },
+          bodyFont: { family: 'Inter' },
+          padding: 8,
+          cornerRadius: 6,
+          callbacks: { label: (ctx) => fmtMoney(ctx.parsed.y) }
+        }},
+        scales: {
+          y: { display:false, grid:{ display:false } },
+          x: { grid:{ display:false }, border:{ display:false }, ticks:{ font:{ size:10.5, family:'Inter' }, color:'#6B6660' } }
+        }
+      }
+    });
+  }
+
+  function renderTransactionFeed(items){
+    const listEl = document.getElementById('transactionList');
+    if(items.length === 0){
+      listEl.innerHTML = `<p class="empty-state">No transactions logged for this range.</p>`;
+      return;
+    }
+
+    listEl.innerHTML = items.map(item => `
+      <div class="txn">
+        <div class="left">
+          <span class="desc">${item.description}</span>
+          <div class="meta">
+            <span class="pill">${item.category}</span>
+            <span class="date">${item.date.toLocaleDateString('en-MY', {day:'numeric', month:'short'})}</span>
+          </div>
         </div>
-    </header>
-
-    <main class="max-w-md mx-auto px-4 mt-4 space-y-5">
-
-        <!-- Budget Quick Editor Modal (Inline Hidden by Default) -->
-        <div id="budgetModal" class="hidden bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-3 transition-all">
-            <div class="flex justify-between items-center">
-                <label class="text-sm font-semibold text-slate-700">Adjust Monthly Budget (RM)</label>
-                <button onclick="toggleBudgetModal()" class="text-slate-400 text-xs font-medium">Close</button>
-            </div>
-            <div class="flex gap-2">
-                <input type="number" id="budgetInput" value="3360" class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-semibold focus:outline-none focus:border-indigo-500">
-                <button onclick="updateBudget()" class="bg-indigo-600 text-white text-xs font-semibold px-4 py-2 rounded-xl active:bg-indigo-700">Save</button>
-            </div>
-        </div>
-
-        <!-- Sticky Date Filter Panel -->
-        <div class="bg-white p-3 rounded-2xl shadow-sm border border-slate-100 grid grid-cols-2 gap-2">
-            <div>
-                <label class="block text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">Start Date</label>
-                <input type="date" id="startDate" onchange="filterData()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2 py-1.5 text-xs font-medium focus:outline-none">
-            </div>
-            <div>
-                <label class="block text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">End Date</label>
-                <input type="date" id="endDate" onchange="filterData()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-2 py-1.5 text-xs font-medium focus:outline-none">
-            </div>
-        </div>
-
-        <!-- KPI Financial Cards Stack -->
-        <div class="grid grid-cols-2 gap-3">
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
-                <span class="text-xs font-medium text-slate-400">Total Spent</span>
-                <span id="totalSpentCard" class="text-lg font-bold text-slate-900 mt-2">RM 0.00</span>
-            </div>
-            <div id="statusContainer" class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between transition-colors duration-300">
-                <span id="statusLabel" class="text-xs font-medium text-slate-400">Remaining Balance</span>
-                <span id="statusValueCard" class="text-lg font-bold text-slate-900 mt-2">RM 0.00</span>
-            </div>
-        </div>
-
-        <!-- Chart Section 1: Categories Breakdown (Doughnut) -->
-        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 space-y-3">
-            <div class="flex justify-between items-center">
-                <h2 class="text-sm font-bold text-slate-800">Category Breakdown</h2>
-                <span class="text-[11px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-medium">Percentage</span>
-            </div>
-            <div class="relative w-full aspect-square max-h-[240px] mx-auto flex items-center justify-center">
-                <canvas id="categoryChart"></canvas>
-            </div>
-        </div>
-
-        <!-- Chart Section 2: Month-over-Month Comparison -->
-        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 space-y-3">
-            <h2 class="text-sm font-bold text-slate-800">Monthly Expense Trends</h2>
-            <div class="w-full max-h-[180px]">
-                <canvas id="monthlyChart"></canvas>
-            </div>
-        </div>
-
-        <!-- Recent Activity Feed -->
-        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 space-y-3">
-            <h2 class="text-sm font-bold text-slate-800">Recent Transactions</h2>
-            <div id="transactionList" class="space-y-2 max-h-[260px] overflow-y-auto custom-scroll pr-1">
-                <!-- Dynamic Items Inserted Here -->
-                <p class="text-xs text-center text-slate-400 py-4">Fetching logs...</p>
-            </div>
-        </div>
-
-    </main>
-
-    <script>
-        // Configuration & State
-        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQNFbJjjGDrZb4lrKTxM_VSXCaJG-g20AV41NqdjWpZD-rpA0QNX9SbfvqI-y1gncXu1xTl-sg0KZdM/pub?output=csv';
-
-        let rawTransactions = [];
-        let currentBudget = 3360;
-        let categoryChartInst = null;
-        let monthlyChartInst = null;
-
-        // Custom function to handle Malaysian DD/MM/YYYY date strings cleanly
-        function parseFlexibleDate(dateStr) {
-            if (!dateStr) return null;
-            
-            // Try standard parse first
-            let standardDate = new Date(dateStr);
-            if (!isNaN(standardDate)) return standardDate;
-            
-            // Fallback for DD/MM/YYYY formats
-            try {
-                const parts = dateStr.split(' ');
-                const dateParts = parts[0].split(/[-/]/);
-                
-                if (dateParts.length === 3) {
-                    let day, month, year;
-                    
-                    if (dateParts[0].length === 4) { // YYYY-MM-DD
-                        year = parseInt(dateParts[0], 10);
-                        month = parseInt(dateParts[1], 10) - 1;
-                        day = parseInt(dateParts[2], 10);
-                    } else { // DD/MM/YYYY
-                        day = parseInt(dateParts[0], 10);
-                        month = parseInt(dateParts[1], 10) - 1;
-                        year = parseInt(dateParts[2], 10);
-                    }
-                    
-                    let hour = 0, minute = 0, second = 0;
-                    if (parts[1]) {
-                        const timeParts = parts[1].split(':');
-                        hour = parseInt(timeParts[0], 10) || 0;
-                        minute = parseInt(timeParts[1], 10) || 0;
-                        second = parseInt(timeParts[2], 10) || 0;
-                    }
-                    
-                    const finalDate = new Date(year, month, day, hour, minute, second);
-                    if (!isNaN(finalDate)) return finalDate;
-                }
-            } catch (e) {
-                console.error("Failed to parse row date:", dateStr);
-            }
-            return null;
-        }
-
-        window.addEventListener('DOMContentLoaded', () => {
-            const now = new Date();
-            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
-            
-            document.getElementById('startDate').value = firstDay;
-            document.getElementById('endDate').value = lastDay;
-
-            fetchData();
-        });
-
-        function toggleBudgetModal() {
-            const modal = document.getElementById('budgetModal');
-            modal.classList.toggle('hidden');
-        }
-
-        function updateBudget() {
-            const inputVal = document.getElementById('budgetInput').value;
-            if (inputVal && inputVal > 0) {
-                currentBudget = parseFloat(inputVal);
-                filterData();
-                toggleBudgetModal();
-            }
-        }
-
-        async function fetchData() {
-            try {
-                const response = await fetch(CSV_URL);
-                const data = await response.text();
-                
-                const lines = data.split('\n').map(line => line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || []);
-                rawTransactions = [];
-
-                for(let i = 1; i < lines.length; i++) {
-                    const row = lines[i].map(val => val.replace(/^"|"$/g, '').trim());
-                    if (row.length >= 4) {
-                        const timestampStr = row[0];
-                        const amount = parseFloat(row[1].replace(/RM/g, '').replace(/,/g, '')) || 0;
-                        const description = row[2] || 'Unspecified';
-                        const category = row[3] || 'Other';
-
-                        const parsedDate = parseFlexibleDate(timestampStr);
-
-                        if(parsedDate) {
-                            rawTransactions.push({
-                                date: parsedDate,
-                                amount: amount,
-                                description: description,
-                                category: category
-                            });
-                        }
-                    }
-                }
-
-                rawTransactions.sort((a, b) => b.date - a.date);
-                filterData();
-
-            } catch (error) {
-                console.error("Data ingestion failure:", error);
-                document.getElementById('transactionList').innerHTML = `<p class="text-xs text-red-500 text-center py-4">Unable to connect to Google Sheet data.</p>`;
-            }
-        }
-
-        function filterData() {
-            const startStr = document.getElementById('startDate').value;
-            const endStr = document.getElementById('endDate').value;
-            
-            const start = startStr ? new Date(startStr + 'T00:00:00') : null;
-            const end = endStr ? new Date(endStr + 'T23:59:59') : null;
-
-            const filtered = rawTransactions.filter(t => {
-                if (start && t.date < start) return false;
-                if (end && t.date > end) return false;
-                return true;
-            });
-
-            updateDashboard(filtered);
-        }
-
-        function updateDashboard(data) {
-            let totalSpent = 0;
-            const categorySums = {};
-
-            data.forEach(t => {
-                totalSpent += t.amount;
-                categorySums[t.category] = (categorySums[t.category] || 0) + t.amount;
-            });
-
-            document.getElementById('totalSpentCard').innerText = `RM ${totalSpent.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-            
-            const statusContainer = document.getElementById('statusContainer');
-            const statusLabel = document.getElementById('statusLabel');
-            const statusValueCard = document.getElementById('statusValueCard');
-
-            if (totalSpent > currentBudget) {
-                statusContainer.className = "bg-red-50 p-4 rounded-2xl shadow-sm border border-red-200 flex flex-col justify-between transition-colors duration-300";
-                statusLabel.innerText = "Budget Status";
-                statusLabel.className = "text-xs font-bold text-red-500 uppercase tracking-wide";
-                statusValueCard.innerText = "⚠️ Budget Burst!";
-                statusValueCard.className = "text-lg font-black text-red-600 mt-2";
-            } else {
-                statusContainer.className = "bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between transition-colors duration-300";
-                statusLabel.innerText = "Remaining Balance";
-                statusLabel.className = "text-xs font-medium text-slate-400";
-                const remainder = currentBudget - totalSpent;
-                statusValueCard.innerText = `RM ${remainder.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-                statusValueCard.className = "text-lg font-bold text-slate-900 mt-2";
-            }
-
-            renderDoughnutChart(categorySums);
-            renderMonthlyChart(rawTransactions);
-            renderTransactionFeed(data);
-        }
-
-        function renderDoughnutChart(categoryData) {
-            const ctx = document.getElementById('categoryChart').getContext('2d');
-            const labels = Object.keys(categoryData);
-            const dataValues = Object.values(categoryData);
-
-            if (categoryChartInst) categoryChartInst.destroy();
-
-            if(labels.length === 0) {
-                ctx.clearRect(0, 0, 200, 200);
-                return;
-            }
-
-            categoryChartInst = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: dataValues,
-                        backgroundColor: [
-                            '#4f46e5', '#06b6d4', '#10b981', '#f59e0b', '#ec4899', 
-                            '#8b5cf6', '#ef4444', '#64748b', '#a855f7', '#14b8a6',
-                            '#f97316', '#0ea5e9', '#84cc16', '#6b7280'
-                        ],
-                        borderWidth: 2,
-                        borderColor: '#ffffff'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'right',
-                            labels: { boxWidth: 10, font: { size: 10 } }
-                        }
-                    },
-                    cutout: '70%'
-                }
-            });
-        }
-
-        function renderMonthlyChart(allData) {
-            const ctx = document.getElementById('monthlyChart').getContext('2d');
-            const monthlyTotals = {};
-            
-            allData.forEach(t => {
-                const monthLabel = t.date.toLocaleString('default', { month: 'short', year: '2-digit' });
-                monthlyTotals[monthLabel] = (monthlyTotals[monthLabel] || 0) + t.amount;
-            });
-
-            const labels = Object.keys(monthlyTotals).reverse().slice(-6);
-            const dataValues = labels.map(lbl => monthlyTotals[lbl]);
-
-            if (monthlyChartInst) monthlyChartInst.destroy();
-
-            monthlyChartInst = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Total Expenses (RM)',
-                        data: dataValues,
-                        backgroundColor: 'rgba(79, 70, 229, 0.85)',
-                        borderRadius: 6,
-                        barThickness: 16
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: { grid: { display: false }, ticks: { font: { size: 9 } } },
-                        x: { grid: { display: false }, ticks: { font: { size: 9 } } }
-                    }
-                }
-            });
-        }
-
-        function renderTransactionFeed(items) {
-            const listEl = document.getElementById('transactionList');
-            if(items.length === 0) {
-                listEl.innerHTML = `<p class="text-xs text-center text-slate-400 py-6">No transactions logged for this range.</p>`;
-                return;
-            }
-
-            listEl.innerHTML = items.map(item => `
-                <div class="flex justify-between items-center bg-slate-50 border border-slate-100 p-3 rounded-xl">
-                    <div class="flex flex-col max-w-[70%]">
-                        <span class="text-xs font-bold text-slate-800 truncate">${item.description}</span>
-                        <div class="flex gap-2 items-center mt-0.5">
-                            <span class="text-[9px] bg-slate-200/70 text-slate-600 px-1.5 py-0.2 rounded font-medium">${item.category}</span>
-                            <span class="text-[9px] text-slate-400">${item.date.toLocaleDateString('en-MY', {day:'numeric', month:'short'})}</span>
-                        </div>
-                    </div>
-                    <span class="text-xs font-bold text-slate-900">RM ${item.amount.toFixed(2)}</span>
-                </div>
-            `).join('');
-        }
-    </script>
+        <span class="amt nums">${fmtMoney(item.amount)}</span>
+      </div>
+    `).join('');
+  }
+</script>
 </body>
 </html>
