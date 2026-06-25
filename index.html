@@ -390,7 +390,7 @@
 </main>
 
 <script>
-  const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQNFbJjjGDrZb4lrKTxM_VSXCaJG-g20AV41NqdjWpZD-rpA0QNX9SbfvqI-y1gncXu1xTl-sg0KZdM/pub?output=csv';
+  const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQNFbJjjGDrZb4lrKTxM_VSXCaJG-g20AV41NqdjWpZD-rpA0QNX9SbfvqI-y1gncXu1xTl-sg0KZdM/pub?gid=91853040&single=true&output=csv';
 
   // Ledger-toned palette cycle for category swatches (sage/clay family + neutrals)
   const PALETTE = ['#B5532C','#5C7A5C','#9C8254','#7A6B8C','#4F6B72','#A8743C','#6B6660','#8C5C5C','#5C7A8C','#7A8C5C','#8C6B5C','#6B5C8C','#5C8C7A','#8C7A5C'];
@@ -402,6 +402,49 @@
 
   function fmtMoney(n){
     return `RM ${n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}`;
+  }
+
+  // Proper quote-aware CSV line parser (handles commas/parens inside quoted fields)
+  function parseCsvLine(line){
+    const result = [];
+    let cur = '';
+    let inQuotes = false;
+    for(let i = 0; i < line.length; i++){
+      const ch = line[i];
+      if(inQuotes){
+        if(ch === '"'){
+          if(line[i+1] === '"'){ cur += '"'; i++; }
+          else { inQuotes = false; }
+        } else {
+          cur += ch;
+        }
+      } else {
+        if(ch === '"'){ inQuotes = true; }
+        else if(ch === ','){ result.push(cur); cur = ''; }
+        else { cur += ch; }
+      }
+    }
+    result.push(cur);
+    return result.map(v => v.trim());
+  }
+
+  // Splits raw CSV text into rows, respecting quoted newlines
+  function parseCsv(text){
+    const rows = [];
+    let cur = '';
+    let inQuotes = false;
+    for(let i = 0; i < text.length; i++){
+      const ch = text[i];
+      if(ch === '"') inQuotes = !inQuotes;
+      if(ch === '\n' && !inQuotes){
+        rows.push(cur);
+        cur = '';
+      } else if(ch !== '\r'){
+        cur += ch;
+      }
+    }
+    if(cur.trim().length) rows.push(cur);
+    return rows.map(parseCsvLine);
   }
 
   function parseFlexibleDate(dateStr){
@@ -454,22 +497,26 @@
 
   async function fetchData(){
     try{
-      const response = await fetch(CSV_URL);
-      const data = await response.text();
-      const lines = data.split('\n').map(line => line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || []);
+      const response = await fetch(CSV_URL, { cache: 'no-store' });
+      if(!response.ok) throw new Error(`HTTP ${response.status}`);
+      const text = await response.text();
+      const rows = parseCsv(text);
       rawTransactions = [];
 
-      for(let i=1; i<lines.length; i++){
-        const row = lines[i].map(val => val.replace(/^"|"$/g,'').trim());
-        if(row.length >= 4){
-          const timestampStr = row[0];
-          const amount = parseFloat(row[1].replace(/RM/g,'').replace(/,/g,'')) || 0;
-          const description = row[2] || 'Unspecified';
-          const category = row[3] || 'Other';
-          const parsedDate = parseFlexibleDate(timestampStr);
-          if(parsedDate){
-            rawTransactions.push({ date: parsedDate, amount, description, category });
-          }
+      // Expected columns: Timestamp, How Much?, For What?, Categories
+      for(let i = 1; i < rows.length; i++){
+        const row = rows[i];
+        if(!row || row.length < 4) continue;
+        if(row.every(cell => cell === '')) continue;
+
+        const timestampStr = row[0];
+        const amount = parseFloat(String(row[1]).replace(/RM/gi,'').replace(/,/g,'').trim()) || 0;
+        const description = row[2] || 'Unspecified';
+        const category = row[3] || 'Other';
+        const parsedDate = parseFlexibleDate(timestampStr);
+
+        if(parsedDate){
+          rawTransactions.push({ date: parsedDate, amount, description, category });
         }
       }
       rawTransactions.sort((a,b) => b.date - a.date);
