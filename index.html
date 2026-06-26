@@ -79,6 +79,7 @@
     letter-spacing:-0.01em;
   }
   header .sub{ font-size:11px; color:var(--ink-soft); font-weight:500; margin:1px 0 0; }
+  .header-actions{ display:flex; align-items:center; gap:8px; }
   .icon-btn{
     width:38px; height:38px;
     border-radius:12px;
@@ -92,12 +93,29 @@
   }
   .icon-btn:active{ transform:scale(0.92); }
   .icon-btn svg{ width:17px; height:17px; }
+  .icon-btn.spinning svg{ animation: spin 0.7s linear infinite; }
+  .icon-btn:disabled{ opacity:0.6; cursor:default; }
+  @keyframes spin{ from{ transform:rotate(0deg); } to{ transform:rotate(360deg); } }
 
   main{
     max-width:500px;
     margin:0 auto;
     padding:0 18px;
   }
+
+  /* ===== Last synced strip ===== */
+  .sync-row{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:5px;
+    font-size:11px;
+    color:var(--ink-soft);
+    font-weight:600;
+    margin:0 0 12px;
+  }
+  .sync-row .dot{ width:6px; height:6px; border-radius:50%; background:var(--safe); flex-shrink:0; }
+  .sync-row.stale .dot{ background:var(--c4); }
 
   /* ===== Budget Editor ===== */
   #budgetModal{
@@ -349,7 +367,7 @@
     padding:18px 0 6px;
   }
 
-  @media (prefers-reduced-motion: reduce){ *{ transition:none !important; } }
+  @media (prefers-reduced-motion: reduce){ *{ transition:none !important; } .icon-btn.spinning svg{ animation:none !important; } }
 </style>
 </head>
 <body>
@@ -364,12 +382,22 @@
       <p class="sub">Family cash flow</p>
     </div>
   </div>
-  <button class="icon-btn" onclick="toggleBudgetModal()" aria-label="Adjust budget">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="9" cy="6" r="1.8" fill="currentColor" stroke="none"/><circle cx="16" cy="12" r="1.8" fill="currentColor" stroke="none"/><circle cx="12" cy="18" r="1.8" fill="currentColor" stroke="none"/></svg>
-  </button>
+  <div class="header-actions">
+    <button class="icon-btn" id="refreshBtn" onclick="manualRefresh()" aria-label="Refresh data">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
+    </button>
+    <button class="icon-btn" onclick="toggleBudgetModal()" aria-label="Adjust budget">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="9" cy="6" r="1.8" fill="currentColor" stroke="none"/><circle cx="16" cy="12" r="1.8" fill="currentColor" stroke="none"/><circle cx="12" cy="18" r="1.8" fill="currentColor" stroke="none"/></svg>
+    </button>
+  </div>
 </header>
 
 <main>
+
+  <div class="sync-row" id="syncRow">
+    <span class="dot"></span>
+    <span id="syncLabel">Syncing&hellip;</span>
+  </div>
 
   <div id="budgetModal">
     <div class="row">
@@ -472,6 +500,7 @@
   let monthlyChartInst = null;
   let categoryChartInst = null;
   let activeCategory = null; // for donut/legend cross-filter highlight
+  let isFetching = false;
 
   function fmtMoney(n){
     return `RM ${n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}`;
@@ -590,9 +619,37 @@
     }
   }
 
+  function setSyncLabel(text, stale){
+    const row = document.getElementById('syncRow');
+    const label = document.getElementById('syncLabel');
+    label.innerText = text;
+    row.classList.toggle('stale', !!stale);
+  }
+
+  function formatSyncTime(d){
+    return d.toLocaleTimeString('en-MY', { hour:'numeric', minute:'2-digit' });
+  }
+
+  // Manually triggered refresh — re-pulls the CSV right now, bypassing any cache,
+  // for whenever a new Google Form entry hasn't shown up on its own yet.
+  async function manualRefresh(){
+    if(isFetching) return;
+    const btn = document.getElementById('refreshBtn');
+    btn.classList.add('spinning');
+    btn.disabled = true;
+    setSyncLabel('Refreshing&hellip;');
+    await fetchData();
+    btn.classList.remove('spinning');
+    btn.disabled = false;
+  }
+
   async function fetchData(){
+    isFetching = true;
     try{
-      const response = await fetch(CSV_URL, { cache: 'no-store' });
+      // Cache-busting query param on top of cache:'no-store', since some CDNs/browsers
+      // ignore the no-store hint for cross-origin requests.
+      const bustedUrl = CSV_URL + '&_=' + Date.now();
+      const response = await fetch(bustedUrl, { cache: 'no-store' });
       if(!response.ok) throw new Error(`HTTP ${response.status}`);
       const text = await response.text();
       const rows = parseCsv(text);
@@ -616,9 +673,13 @@
       }
       rawTransactions.sort((a,b) => b.date - a.date);
       filterData();
+      setSyncLabel(`Updated ${formatSyncTime(new Date())}`, false);
     } catch(error){
       console.error('Data ingestion failure:', error);
       document.getElementById('transactionList').innerHTML = `<p class="empty-state">Couldn't reach the ledger. Check your connection and reload.</p>`;
+      setSyncLabel('Couldn\'t refresh — tap to retry', true);
+    } finally {
+      isFetching = false;
     }
   }
 
