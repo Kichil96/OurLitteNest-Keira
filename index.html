@@ -113,7 +113,9 @@
     color:var(--ink-soft);
     font-weight:600;
     margin:0 0 12px;
+    cursor:default;
   }
+  .sync-row.clickable{ cursor:pointer; }
   .sync-row .dot{ width:6px; height:6px; border-radius:50%; background:var(--safe); flex-shrink:0; }
   .sync-row.stale .dot{ background:var(--c4); }
 
@@ -394,7 +396,7 @@
 
 <main>
 
-  <div class="sync-row" id="syncRow">
+  <div class="sync-row clickable" id="syncRow" onclick="manualRefresh()">
     <span class="dot"></span>
     <span id="syncLabel">Syncing&hellip;</span>
   </div>
@@ -484,6 +486,11 @@
 
 <script>
   const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQNFbJjjGDrZb4lrKTxM_VSXCaJG-g20AV41NqdjWpZD-rpA0QNX9SbfvqI-y1gncXu1xTl-sg0KZdM/pub?gid=91853040&single=true&output=csv';
+
+  // FIX: how many silent retries to attempt before showing the user an error,
+  // and how long to wait between each attempt.
+  const MAX_SILENT_RETRIES = 2;
+  const RETRY_DELAY_MS = 1500;
 
   // Categorical infographic palette — consistent hue march
   const PALETTE = ['#5B5FEF','#8B5CF6','#D946A8','#F5A524','#14B8A6','#FF6F59','#3B82F6','#84CC16','#EC4899','#06B6D4','#F97316','#A855F7','#10B981','#6366F1'];
@@ -579,7 +586,7 @@
     const now = new Date();
     let startYear = now.getFullYear();
     let startMonth = now.getMonth(); // 0-indexed (0=Jan, 5=Jun, etc.)
-    
+
     // Cycle check: If today is before the 25th, our cycle began on the 25th of PREVIOUS month.
     if (now.getDate() < 25) {
       startMonth = startMonth - 1;
@@ -588,7 +595,7 @@
         startYear = startYear - 1;
       }
     }
-    
+
     // Calculate precise start and end objects for the custom cycle range
     const cycleStart = new Date(startYear, startMonth, 25);
     const cycleEnd = new Date(startYear, startMonth + 1, 24);
@@ -643,44 +650,73 @@
     btn.disabled = false;
   }
 
+  // Small helper to pause between retry attempts.
+  function wait(ms){ return new Promise(resolve => setTimeout(resolve, ms)); }
+
+  // FIX: the actual network call, separated out so fetchData() can retry it
+  // silently without duplicating all the parsing logic.
+  async function attemptFetchOnce(){
+    // Cache-busting query param on top of cache:'no-store', since some CDNs/browsers
+    // ignore the no-store hint for cross-origin requests.
+    const bustedUrl = CSV_URL + '&_=' + Date.now();
+    const response = await fetch(bustedUrl, { cache: 'no-store' });
+    if(!response.ok) throw new Error(`HTTP ${response.status}`);
+    const text = await response.text();
+    const rows = parseCsv(text);
+    const parsed = [];
+
+    // Expected columns: Timestamp, How Much?, For What?, Categories
+    for(let i = 1; i < rows.length; i++){
+      const row = rows[i];
+      if(!row || row.length < 4) continue;
+      if(row.every(cell => cell === '')) continue;
+
+      const timestampStr = row[0];
+      const amount = parseFloat(String(row[1]).replace(/RM/gi,'').replace(/,/g,'').trim()) || 0;
+      const description = row[2] || 'Unspecified';
+      const category = row[3] || 'Other';
+      const parsedDate = parseFlexibleDate(timestampStr);
+
+      if(parsedDate){
+        parsed.push({ date: parsedDate, amount, description, category });
+      }
+    }
+    return parsed;
+  }
+
+  // FIX: fetchData now retries silently up to MAX_SILENT_RETRIES times before
+  // surfacing an error to the user. Most "Couldn't refresh" cases are transient
+  // network/CDN hiccups that resolve themselves within a couple of seconds —
+  // this avoids alarming the user (or showing stale data) for those cases.
   async function fetchData(){
     isFetching = true;
-    try{
-      // Cache-busting query param on top of cache:'no-store', since some CDNs/browsers
-      // ignore the no-store hint for cross-origin requests.
-      const bustedUrl = CSV_URL + '&_=' + Date.now();
-      const response = await fetch(bustedUrl, { cache: 'no-store' });
-      if(!response.ok) throw new Error(`HTTP ${response.status}`);
-      const text = await response.text();
-      const rows = parseCsv(text);
-      rawTransactions = [];
+    let lastError = null;
 
-      // Expected columns: Timestamp, How Much?, For What?, Categories
-      for(let i = 1; i < rows.length; i++){
-        const row = rows[i];
-        if(!row || row.length < 4) continue;
-        if(row.every(cell => cell === '')) continue;
-
-        const timestampStr = row[0];
-        const amount = parseFloat(String(row[1]).replace(/RM/gi,'').replace(/,/g,'').trim()) || 0;
-        const description = row[2] || 'Unspecified';
-        const category = row[3] || 'Other';
-        const parsedDate = parseFlexibleDate(timestampStr);
-
-        if(parsedDate){
-          rawTransactions.push({ date: parsedDate, amount, description, category });
+    for(let attempt = 0; attempt <= MAX_SILENT_RETRIES; attempt++){
+      try{
+        const parsed = await attemptFetchOnce();
+        rawTransactions = parsed.sort((a,b) => b.date - a.date);
+        filterData();
+        setSyncLabel(`Updated ${formatSyncTime(new Date())}`, false);
+        isFetching = false;
+        return;
+      } catch(error){
+        lastError = error;
+        console.error(`Data ingestion attempt ${attempt + 1} failed:`, error);
+        if(attempt < MAX_SILENT_RETRIES){
+          setSyncLabel('Syncing&hellip;', false); // stay quiet, just keep trying
+          await wait(RETRY_DELAY_MS);
         }
       }
-      rawTransactions.sort((a,b) => b.date - a.date);
-      filterData();
-      setSyncLabel(`Updated ${formatSyncTime(new Date())}`, false);
-    } catch(error){
-      console.error('Data ingestion failure:', error);
-      document.getElementById('transactionList').innerHTML = `<p class="empty-state">Couldn't reach the ledger. Check your connection and reload.</p>`;
-      setSyncLabel('Couldn\'t refresh — tap to retry', true);
-    } finally {
-      isFetching = false;
     }
+
+    // All attempts failed — now surface the error to the user.
+    console.error('Data ingestion failure after retries:', lastError);
+    if(rawTransactions.length === 0){
+      document.getElementById('transactionList').innerHTML = `<p class="empty-state">Couldn't reach the ledger. Check your connection and reload.</p>`;
+    }
+    setSyncLabel('Couldn\'t refresh — tap to retry', true);
+    isFetching = false;
   }
 
   function filterData(){
