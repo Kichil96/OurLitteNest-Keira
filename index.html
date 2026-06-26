@@ -457,7 +457,7 @@
 </main>
 
 <script>
-  const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQNFbJjjGDrZb4lrKTxM_VSXCaJG-g20AV41NqdjWpZD-rpA0QNX9SbfvqI-y1gncXu1xTl-sg0KZdM/pub?gid=91853040&single=true&output=csv';
+  const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQNFbJjjGDrZb4lrKTxM_VSXCaJG-g20AV41NqdjWpZD-rpA0QNX9SbfvqI-y1gncXu1xTl-sg0KZdM/pub?output=csv';
 
   const MAX_SILENT_RETRIES = 2;
   const RETRY_DELAY_MS = 1500;
@@ -479,9 +479,6 @@
   let isFetching = false;
   let debugPanelOpen = false;
 
-  // FIX: debug telemetry captured on every fetch attempt, surfaced via the
-  // "Show sync details" panel so we can see exactly what the app received
-  // without needing browser devtools.
   let debugInfo = {
     fetchedAt: null,
     httpStatus: null,
@@ -634,9 +631,6 @@
 
   function wait(ms){ return new Promise(resolve => setTimeout(resolve, ms)); }
 
-  // FIX: now returns rich diagnostics (httpStatus, rawRowCount, sample rows,
-  // skipped-row count) alongside the parsed transactions, so fetchData() can
-  // populate the debug panel regardless of whether parsing succeeds.
   async function attemptFetchOnce(){
     const bustedUrl = CSV_URL + '&_=' + Date.now();
     const response = await fetch(bustedUrl, { cache: 'no-store' });
@@ -661,14 +655,14 @@
       if(parsedDate){
         parsed.push({ date: parsedDate, amount, description, category });
       } else {
-        skipped++; // row had 4+ columns but the timestamp didn't parse
+        skipped++; 
       }
     }
 
     return {
       parsed,
       httpStatus,
-      rawRowCount: rows.length - 1, // minus header
+      rawRowCount: rows.length - 1, 
       skipped,
       rawSample: rows.slice(-3).map(r => r.join(' | ')).join('\n')
     };
@@ -718,9 +712,6 @@
     isFetching = false;
   }
 
-  // FIX: renders the debug panel from the captured debugInfo + current
-  // filter state, so the family can see at a glance whether new rows from
-  // the Google Form actually arrived in the CSV the app fetched.
   function renderDebugPanel(){
     document.getElementById('dbgFetchedAt').innerText = debugInfo.fetchedAt
       ? debugInfo.fetchedAt.toLocaleString('en-MY')
@@ -732,7 +723,7 @@
     document.getElementById('dbgRawSample').innerText = debugInfo.rawSample || 'No data fetched yet';
 
     if(rawTransactions.length > 0){
-      const newest = rawTransactions[0].date; // already sorted desc
+      const newest = rawTransactions[0].date; 
       const oldest = rawTransactions[rawTransactions.length - 1].date;
       document.getElementById('dbgNewestDate').innerText = newest.toLocaleString('en-MY');
       document.getElementById('dbgOldestDate').innerText = oldest.toLocaleString('en-MY');
