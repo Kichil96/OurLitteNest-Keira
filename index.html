@@ -457,7 +457,7 @@
 </main>
 
 <script>
-  const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQNFbJjjGDrZb4lrKTxM_VSXCaJG-g20AV41NqdjWpZD-rpA0QNX9SbfvqI-y1gncXu1xTl-sg0KZdM/pub?output=csv';
+  const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQNFbJjjGDrZb4lrKTxM_VSXCaJG-g20AV41NqdjWpZD-rpA0QNX9SbfvqI-y1gncXu1xTl-sg0KZdM/pub?gid=91853040&single=true&output=csv';
 
   const MAX_SILENT_RETRIES = 2;
   const RETRY_DELAY_MS = 1500;
@@ -479,6 +479,9 @@
   let isFetching = false;
   let debugPanelOpen = false;
 
+  // FIX: debug telemetry captured on every fetch attempt, surfaced via the
+  // "Show sync details" panel so we can see exactly what the app received
+  // without needing browser devtools.
   let debugInfo = {
     fetchedAt: null,
     httpStatus: null,
@@ -535,16 +538,29 @@
 
   function parseFlexibleDate(dateStr){
     if(!dateStr) return null;
-    let standardDate = new Date(dateStr);
-    if(!isNaN(standardDate)) return standardDate;
+
+    // CRITICAL FIX: Never pass slash-format dates (DD/MM/YYYY) to new Date() directly.
+    // JavaScript reads "01/07/2026" as January 7th (MM/DD/YYYY), not July 1st.
+    // Your Google Form timestamps use DD/MM/YYYY, so this caused all July+ entries
+    // to be silently misdated to January and filtered out as outside the date window.
+    //
+    // Only trust new Date() for unambiguous ISO format: YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS
+    if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+      const d = new Date(dateStr);
+      if (!isNaN(d)) return d;
+    }
+
+    // For everything else (DD/MM/YYYY HH:MM:SS from Google Forms), always parse manually
     try{
-      const parts = dateStr.split(' ');
+      const parts = dateStr.trim().split(' ');
       const dateParts = parts[0].split(/[-/]/);
       if(dateParts.length === 3){
         let day, month, year;
         if(dateParts[0].length === 4){
+          // YYYY-MM-DD (slash variant) — year first means year/month/day
           year = parseInt(dateParts[0],10); month = parseInt(dateParts[1],10)-1; day = parseInt(dateParts[2],10);
         } else {
+          // DD/MM/YYYY — Google Forms Malaysian locale: day first, always
           day = parseInt(dateParts[0],10); month = parseInt(dateParts[1],10)-1; year = parseInt(dateParts[2],10);
         }
         let hour=0, minute=0, second=0;
@@ -631,6 +647,9 @@
 
   function wait(ms){ return new Promise(resolve => setTimeout(resolve, ms)); }
 
+  // FIX: now returns rich diagnostics (httpStatus, rawRowCount, sample rows,
+  // skipped-row count) alongside the parsed transactions, so fetchData() can
+  // populate the debug panel regardless of whether parsing succeeds.
   async function attemptFetchOnce(){
     const bustedUrl = CSV_URL + '&_=' + Date.now();
     const response = await fetch(bustedUrl, { cache: 'no-store' });
@@ -655,14 +674,14 @@
       if(parsedDate){
         parsed.push({ date: parsedDate, amount, description, category });
       } else {
-        skipped++; 
+        skipped++; // row had 4+ columns but the timestamp didn't parse
       }
     }
 
     return {
       parsed,
       httpStatus,
-      rawRowCount: rows.length - 1, 
+      rawRowCount: rows.length - 1, // minus header
       skipped,
       rawSample: rows.slice(-3).map(r => r.join(' | ')).join('\n')
     };
@@ -712,6 +731,9 @@
     isFetching = false;
   }
 
+  // FIX: renders the debug panel from the captured debugInfo + current
+  // filter state, so the family can see at a glance whether new rows from
+  // the Google Form actually arrived in the CSV the app fetched.
   function renderDebugPanel(){
     document.getElementById('dbgFetchedAt').innerText = debugInfo.fetchedAt
       ? debugInfo.fetchedAt.toLocaleString('en-MY')
@@ -723,7 +745,7 @@
     document.getElementById('dbgRawSample').innerText = debugInfo.rawSample || 'No data fetched yet';
 
     if(rawTransactions.length > 0){
-      const newest = rawTransactions[0].date; 
+      const newest = rawTransactions[0].date; // already sorted desc
       const oldest = rawTransactions[rawTransactions.length - 1].date;
       document.getElementById('dbgNewestDate').innerText = newest.toLocaleString('en-MY');
       document.getElementById('dbgOldestDate').innerText = oldest.toLocaleString('en-MY');
