@@ -774,17 +774,15 @@ function mergeLocalData(data) {
 
   if (inRange.length === 0) return data;
 
-  const localHashes = new Set(localTransactions.map(t =>
-    `${t.amount}|${t.description}|${t.category}|${t._localId}`
+  const csvHashes = new Set(data.map(t =>
+    `${t.amount}|${t.description}|${t.category}`
   ));
 
-  const deduped = data.filter(t => {
-    if (t._local) return false;
-    const h = `${t.amount}|${t.description}|${t.category}|${t._localId || ''}`;
-    return !localHashes.has(h);
-  });
+  const notYetInCsv = inRange.filter(t =>
+    !csvHashes.has(`${t.amount}|${t.description}|${t.category}`)
+  );
 
-  return [...inRange, ...deduped].sort((a, b) => b.date - a.date);
+  return [...data, ...notYetInCsv].sort((a, b) => b.date - a.date);
 }
 
 /* ---- Category List ---- */
