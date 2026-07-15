@@ -858,49 +858,75 @@
     text-align:center; margin-top:12px; font-weight:500;
   }
 
-  /* ===== Password Gate ===== */
+  /* ===== Password Gate — iOS style ===== */
   .gate-overlay{
     position:fixed; inset:0; z-index:99999;
     display:flex; align-items:center; justify-content:center;
-    background:var(--bg, #F4F6F9);
+    background:var(--bg);
     transition:opacity .4s ease, visibility .4s ease;
   }
   .gate-overlay.hidden{ opacity:0; visibility:hidden; pointer-events:none; }
   .gate-card{
-    background:var(--card-bg,rgba(255,255,255,.75));
-    -webkit-backdrop-filter:blur(24px); backdrop-filter:blur(24px);
-    border-radius:24px; padding:40px 32px; width:320px; max-width:88vw;
-    text-align:center; border:1px solid var(--card-border,rgba(255,255,255,.5));
-    box-shadow:0 12px 48px rgba(0,0,0,.08);
+    padding:36px 24px 20px; width:320px; max-width:90vw;
+    text-align:center;
   }
-  .gate-logo{ margin-bottom:12px; }
+  .gate-logo{ margin-bottom:10px; }
   .gate-title{
     font-family:'Space Grotesk',sans-serif;
-    font-size:22px; font-weight:700; color:var(--ink); margin:0 0 4px;
+    font-size:22px; font-weight:700; color:var(--ink); margin:0 0 2px;
   }
   .gate-sub{
-    font-size:13px; color:var(--ink-faint); margin:0 0 24px; line-height:1.4;
+    font-size:13px; color:var(--ink-faint); margin:0 0 28px; line-height:1.4;
   }
-  .gate-input{
-    width:100%; box-sizing:border-box;
-    padding:14px 16px; border:1.5px solid var(--border,#E5E7EB);
-    border-radius:14px; font-size:16px; text-align:center;
-    background:var(--input-bg,rgba(255,255,255,.8));
-    color:var(--ink); outline:none; transition:border-color .2s;
+  .passcode-dots{
+    display:flex; justify-content:center; gap:12px; margin-bottom:28px; min-height:18px;
   }
-  .gate-input:focus{ border-color:var(--green,#5B8C5A); }
+  .passcode-dot{
+    width:14px; height:14px; border-radius:50%;
+    border:2px solid var(--ink-faint); background:transparent;
+    transition:background .15s, border-color .15s;
+  }
+  .passcode-dot.filled{
+    background:var(--green-500); border-color:var(--green-500);
+  }
+  .passcode-dot.shake{
+    animation:shake .3s ease-in-out;
+  }
+  @keyframes shake{
+    0%,100%{ transform:translateX(0); }
+    25%{ transform:translateX(-8px); }
+    50%{ transform:translateX(8px); }
+    75%{ transform:translateX(-4px); }
+  }
   .gate-error{
-    font-size:12px; color:#DC2626; margin:8px 0 0; display:none;
+    font-size:13px; color:#DC2626; margin:-20px 0 18px; display:none; font-weight:500;
   }
   .gate-error.show{ display:block; }
-  .gate-btn{
-    width:100%; margin-top:16px;
-    padding:14px; border:none; border-radius:14px;
-    background:var(--green,#5B8C5A); color:#fff;
-    font-size:16px; font-weight:600; cursor:pointer;
-    transition:opacity .2s;
+  .gate-error.dark{ color:#F87171; }
+  .numpad{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:10px; max-width:280px; margin:0 auto;
   }
-  .gate-btn:active{ opacity:.8; }
+  .numpad-key{
+    aspect-ratio:1; width:100%;
+    border:none; border-radius:50%;
+    background:var(--surface); color:var(--ink);
+    font-size:24px; font-weight:500; font-family:var(--font);
+    cursor:pointer; transition:background .15s, transform .1s;
+    display:flex; align-items:center; justify-content:center;
+    -webkit-tap-highlight-color:transparent;
+    user-select:none; -webkit-user-select:none;
+  }
+  .numpad-key:active{
+    background:var(--line); transform:scale(0.92);
+  }
+  .numpad-key.empty{ background:transparent; cursor:default; pointer-events:none; }
+  .numpad-key svg{
+    width:28px; height:28px; color:var(--ink);
+  }
+  .numpad-key.delete:active{ background:var(--line); }
+
 </style>
 </head>
 <body>
@@ -1145,7 +1171,7 @@
 </div>
 
 <div id="passwordGate" class="gate-overlay">
-  <div class="gate-card">
+  <div class="gate-card glass-strong">
     <div class="gate-logo">
       <svg viewBox="0 0 40 40" fill="none" aria-hidden="true" focusable="false" style="width:48px;height:48px">
         <rect width="40" height="40" rx="12" fill="var(--green)"/>
@@ -1153,10 +1179,10 @@
       </svg>
     </div>
     <h2 class="gate-title">Our Little Nest</h2>
-    <p class="gate-sub">Enter the passcode to access your budget</p>
-    <input type="password" id="gateInput" class="gate-input" placeholder="Passcode" autocomplete="off">
+    <p class="gate-sub">Enter passcode</p>
+    <div class="passcode-dots" id="passcodeDots"></div>
     <p class="gate-error" id="gateError">Incorrect passcode</p>
-    <button id="gateBtn" class="gate-btn">Unlock</button>
+    <div class="numpad" id="numpad"></div>
   </div>
 </div>
 
