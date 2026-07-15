@@ -800,6 +800,27 @@
   }
   .qa-input:focus{ box-shadow:0 0 0 3px rgba(16,185,129,0.10); }
   .qa-input::placeholder{ color:var(--ink-faint); font-weight:500; }
+  .qa-select-wrap{
+    position:relative;
+    background:var(--bg); border-radius:var(--radius-md);
+    border:1.5px solid transparent;
+    transition:border-color .2s;
+  }
+  .qa-select-wrap:focus-within{ border-color:var(--green-300); }
+  .qa-select{
+    width:100%; background:none; border:none;
+    border-radius:var(--radius-md); padding:12px 40px 12px 14px;
+    font-family:var(--font); font-size:16px; font-weight:600;
+    color:var(--ink); outline:none; cursor:pointer;
+    -webkit-appearance:none; appearance:none;
+  }
+  .qa-select option{ font-weight:600; padding:8px; }
+  .qa-select-arrow{
+    position:absolute; right:14px; top:50%;
+    transform:translateY(-50%);
+    width:18px; height:18px;
+    color:var(--ink-soft); pointer-events:none;
+  }
   .qa-submit{
     width:100%; margin-top:6px;
     background:linear-gradient(135deg, var(--green-400), var(--green-500));
@@ -1025,15 +1046,28 @@
     </div>
     <div class="qa-field">
       <label class="qa-label">Category <span class="qa-req">*</span></label>
-      <input type="text" id="qaCategory" class="qa-input" placeholder="Search or type new..." list="qaCatList" autocomplete="off">
-      <datalist id="qaCatList">
-        <option value="Groceries"><option value="Toiletries"><option value="Food">
-        <option value="Child Care"><option value="Medical"><option value="Entertainment">
-        <option value="Utilities & Subscription"><option value="Loan"><option value="Sport">
-        <option value="Family"><option value="Treat"><option value="Transport">
-        <option value="Shopping"><option value="Gift & Donation"><option value="Pets">
-        <option value="Other">
-      </datalist>
+      <div class="qa-select-wrap">
+        <select id="qaCategory" class="qa-select">
+          <option value="" disabled selected>Select a category</option>
+          <option value="Groceries">Groceries</option>
+          <option value="Toiletries">Toiletries</option>
+          <option value="Food">Food</option>
+          <option value="Child Care">Child Care</option>
+          <option value="Medical">Medical</option>
+          <option value="Entertainment">Entertainment</option>
+          <option value="Utilities & Subscription">Utilities &amp; Subscription</option>
+          <option value="Loan">Loan</option>
+          <option value="Sport">Sport</option>
+          <option value="Family">Family</option>
+          <option value="Treat">Treat</option>
+          <option value="Transport">Transport</option>
+          <option value="Shopping">Shopping</option>
+          <option value="Gift & Donation">Gift &amp; Donation</option>
+          <option value="Pets">Pets</option>
+          <option value="Other">Other</option>
+        </select>
+        <svg class="qa-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
     </div>
     <button class="qa-submit" id="qaSubmitBtn">Add Transaction</button>
     <p class="qa-footnote" id="qaFootnote">Saved locally &bull; also submits to your Google Sheet</p>

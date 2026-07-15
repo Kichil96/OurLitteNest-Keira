@@ -952,7 +952,7 @@ function setupEvents() {
   $.qaSubmitBtn.addEventListener('click', submitTransaction);
   $.qaAmount.addEventListener('keydown', e => { if (e.key === 'Enter') $.qaDesc.focus(); });
   $.qaDesc.addEventListener('keydown', e => { if (e.key === 'Enter') $.qaCategory.focus(); });
-  $.qaCategory.addEventListener('keydown', e => { if (e.key === 'Enter') submitTransaction(); });
+  $.qaCategory.addEventListener('change', () => $.qaSubmitBtn.focus());
 
   $.legendGrid.addEventListener('click', e => {
     const chip = e.target.closest('.legend-chip');
