@@ -5,7 +5,7 @@
  * Paste the resulting URL into the app's config.
  */
 
-const SHEET_NAME = 'Sheet1'; // change if your sheet tab has a different name
+const SHEET_NAME = 'Database'; // <-- changed to match your tab name
 
 function doGet() {
   return ContentService
@@ -25,7 +25,7 @@ function doPost(e) {
     }
 
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
-    if (!sheet) throw new Error(`Sheet "${SHEET_NAME}" not found`);
+    if (!sheet) throw new Error('Sheet "' + SHEET_NAME + '" not found');
 
     const timestamp = new Date();
     sheet.appendRow([timestamp, amount, description, category]);

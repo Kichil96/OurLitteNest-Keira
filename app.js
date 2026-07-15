@@ -47,7 +47,7 @@ let localTransactions = [];
 let qaOpen = false;
 
 /* ---- Apps Script Config ---- */
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxJ41oHhJQe87bzpNAogMdQPOLPFPWgnUdaJbkxPbJgN8Iz0sq-DPggJt9KLviS94t6/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzE2ELVEpqzz4UK7TbB6eycU_IjsxDLD1fWHC3MhlR2p_SGDHJrFLcjJbzBKpcNJzWXcg/exec';
 
 /* ---- DOM refs ---- */
 const $ = {};
@@ -709,19 +709,28 @@ async function submitTransaction() {
   try {
     const res = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
-      mode: 'cors',
-      headers: { 'Content-Type': 'application/json' },
+      redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ amount, description: desc, category })
     });
-    const result = await res.json();
-    if (result.ok) {
-      $.qaFootnote.innerText = 'Saved & synced to your Google Sheet \u2713';
-      $.qaFootnote.style.color = 'var(--green-500)';
-    } else {
-      $.qaFootnote.innerText = 'Saved locally (server: ' + (result.error || 'unknown error') + ')';
+
+    if (!res.ok) {
+      $.qaFootnote.innerText = 'Saved locally (server error ' + res.status + ')';
       $.qaFootnote.style.color = 'var(--burst)';
+    } else {
+      const text = await res.text();
+      let result;
+      try { result = JSON.parse(text); } catch (_) { result = null; }
+
+      if (result && result.ok) {
+        $.qaFootnote.innerText = 'Saved & synced to your Google Sheet \u2713';
+        $.qaFootnote.style.color = 'var(--green-500)';
+      } else {
+        $.qaFootnote.innerText = 'Saved locally (server: ' + (result?.error || 'unexpected response') + ')';
+        $.qaFootnote.style.color = 'var(--burst)';
+      }
     }
-  } catch (_) {
+  } catch (err) {
     $.qaFootnote.innerText = 'Saved locally (offline) \u2713';
     $.qaFootnote.style.color = 'var(--green-500)';
   }
