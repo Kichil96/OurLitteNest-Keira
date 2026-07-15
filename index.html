@@ -9,10 +9,13 @@
 
 <title>Our Little Nest</title>
 
+<link rel="icon" href="image.png" type="image/png">
+<link rel="apple-touch-icon" href="image.png">
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght=500;600;700&family=Inter:wght=400;500;600;700;800&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap');
 
   :root{
     --bg:        #F6F7FB;
@@ -41,7 +44,11 @@
     background:var(--bg);
     color:var(--ink);
     font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
-    padding-bottom:40px;
+    padding:
+      env(safe-area-inset-top, 0px)
+      env(safe-area-inset-right, 0px)
+      calc(40px + env(safe-area-inset-bottom, 0px))
+      env(safe-area-inset-left, 0px);
     -webkit-font-smoothing:antialiased;
   }
 
@@ -49,7 +56,9 @@
   .nums{ font-variant-numeric: tabular-nums; }
 
   header{
-    padding:22px 18px 14px;
+    padding:
+      calc(22px + env(safe-area-inset-top, 0px))
+      18px 14px 18px;
     max-width:500px;
     margin:0 auto;
     display:flex;
@@ -122,6 +131,11 @@
     font-weight:600;
     padding:2px;
   }
+  .debug-toggle:focus-visible{
+    outline:2px solid var(--c1);
+    outline-offset:2px;
+    border-radius:2px;
+  }
   #debugPanel{
     display:none;
     background:var(--ink);
@@ -155,6 +169,7 @@
   #budgetModal .row{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:12px; }
   #budgetModal label{ font-size:12.5px; color:var(--ink-soft); font-weight:600; }
   #budgetModal .close-link{ font-size:12px; color:var(--c1); background:none; border:none; cursor:pointer; font-weight:600; padding:0; }
+  #budgetModal .close-link:focus-visible{ outline:2px solid var(--c1); outline-offset:2px; border-radius:2px; }
   .budget-edit-row{ display:flex; gap:8px; align-items:center; }
   .budget-edit-row .prefix{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:18px; color:var(--ink-soft); }
   #budgetInput{
@@ -169,6 +184,7 @@
     color:var(--ink);
     outline:none;
   }
+  #budgetInput:focus-visible{ outline:2px solid var(--c1); outline-offset:2px; }
   .save-btn{
     background:var(--ink);
     color:#fff;
@@ -181,6 +197,7 @@
     transition: opacity .15s, transform .1s;
   }
   .save-btn:active{ transform:scale(0.96); opacity:0.85; }
+  .save-btn:focus-visible{ outline:2px solid var(--c1); outline-offset:2px; }
 
   .date-row{
     display:flex;
@@ -213,7 +230,17 @@
     padding:0;
     outline:none;
   }
+  .date-field input[type="date"]:focus-visible{ outline:2px solid var(--c1); outline-offset:2px; border-radius:4px; }
   .date-sep{ color:var(--line); font-size:16px; font-weight:700; }
+
+  #dateWarningArea{
+    font-size:11px;
+    color:var(--burst);
+    font-weight:600;
+    margin:-8px 0 14px;
+    text-align:center;
+    display:none;
+  }
 
   .bento{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:14px; }
   .card{ background:var(--card); border-radius:18px; padding:16px; box-shadow:0 1px 2px rgba(22,27,51,0.06); }
@@ -288,7 +315,7 @@
     padding:7px 0; cursor:pointer; border-radius:8px;
     transition: background .15s;
   }
-  .cat-row.dimmed{ opacity:0.35; }
+  .cat-row:hover{ background:var(--bg); }
   .cat-row .swatch{ width:9px; height:9px; border-radius:3px; flex-shrink:0; }
   .cat-row .name{ flex:1; font-size:12.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .cat-row .bar-track{ flex:1.5; height:7px; background:var(--bg); border-radius:5px; overflow:hidden; }
@@ -314,8 +341,20 @@
   .empty-state{ text-align:center; padding:30px 0; color:var(--ink-soft); font-size:12.5px; font-weight:500; }
 
   .scroller{ max-height:360px; overflow-y:auto; }
+  .scroller.expanded{ max-height:none; }
   .scroller::-webkit-scrollbar{ width:3px; }
   .scroller::-webkit-scrollbar-thumb{ background:var(--line); border-radius:3px; }
+
+  .show-all-wrap{ text-align:center; padding:10px 0 4px; }
+  .show-all-btn{
+    background:none; border:1.5px solid var(--line);
+    border-radius:10px; padding:8px 16px;
+    font-size:11px; font-weight:700; color:var(--c1);
+    cursor:pointer; font-family:'Inter',sans-serif;
+    transition: background .15s;
+  }
+  .show-all-btn:hover{ background:var(--bg); }
+  .show-all-btn:focus-visible{ outline:2px solid var(--c1); outline-offset:2px; }
 
   footer{ text-align:center; font-size:10.5px; color:var(--ink-soft); font-weight:500; padding:18px 0 6px; }
 
@@ -409,11 +448,15 @@
     line-height:1;
   }
   .sheet-close:active{ opacity:0.7; }
+  .sheet-close:focus-visible{ outline:2px solid var(--c1); outline-offset:2px; }
 
   .sheet-body{
     overflow-y:auto;
     flex:1;
-    padding:6px 18px 32px;
+    padding:
+      6px 18px
+      calc(32px + env(safe-area-inset-bottom, 0px))
+      18px;
     -webkit-overflow-scrolling:touch;
   }
   .sheet-body::-webkit-scrollbar{ width:3px; }
@@ -439,9 +482,18 @@
   .sheet-txn .date{ font-size:10.5px; color:var(--ink-soft); font-weight:500; }
   .sheet-txn .amt{ font-family:'Space Grotesk',sans-serif; font-size:14px; font-weight:700; flex-shrink:0; }
 
-  /* legend chips get a pointer hint */
   .legend-chip{ cursor:pointer; }
   .legend-chip:hover{ opacity:0.85; }
+
+  /* focus-visible styles for interactive elements */
+  :focus-visible{
+    outline:2px solid var(--c1);
+    outline-offset:2px;
+  }
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible{ outline:2px solid var(--c1); outline-offset:2px; }
+  .icon-btn:focus-visible{ outline:2px solid var(--c1); outline-offset:2px; }
 
   @media (prefers-reduced-motion: reduce){ *{ transition:none !important; } .icon-btn.spinning svg{ animation:none !important; } }
 </style>
@@ -459,24 +511,24 @@
     </div>
   </div>
   <div class="header-actions">
-    <button class="icon-btn" id="refreshBtn" onclick="manualRefresh()" aria-label="Refresh data">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
+    <button class="icon-btn" id="refreshBtn" aria-label="Refresh data">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
     </button>
-    <button class="icon-btn" onclick="toggleBudgetModal()" aria-label="Adjust budget">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="9" cy="6" r="1.8" fill="currentColor" stroke="none"/><circle cx="16" cy="12" r="1.8" fill="currentColor" stroke="none"/><circle cx="12" cy="18" r="1.8" fill="currentColor" stroke="none"/></svg>
+    <button class="icon-btn" id="budgetEditBtn" aria-label="Adjust budget">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="9" cy="6" r="1.8" fill="currentColor" stroke="none"/><circle cx="16" cy="12" r="1.8" fill="currentColor" stroke="none"/><circle cx="12" cy="18" r="1.8" fill="currentColor" stroke="none"/></svg>
     </button>
   </div>
 </header>
 
 <main>
 
-  <div class="sync-row clickable" id="syncRow" onclick="manualRefresh()">
+  <div class="sync-row clickable" id="syncRow" role="status" aria-live="polite">
     <span class="dot"></span>
     <span id="syncLabel">Syncing&hellip;</span>
   </div>
 
   <div class="debug-toggle-row">
-    <button class="debug-toggle" onclick="toggleDebugPanel()" id="debugToggleBtn">Show sync details</button>
+    <button class="debug-toggle" id="debugToggleBtn" aria-expanded="false" aria-controls="debugPanel">Show sync details</button>
   </div>
 
   <div id="debugPanel">
@@ -493,6 +545,9 @@
     <div class="dbg-row"><span class="dbg-label">Filter window</span><span class="dbg-val" id="dbgFilterWindow">—</span></div>
     <div class="dbg-row"><span class="dbg-label">Rows in window</span><span class="dbg-val" id="dbgInWindow">—</span></div>
 
+    <div class="dbg-section">Diff</div>
+    <div class="dbg-row"><span class="dbg-label">Tracking</span><span class="dbg-val" id="dbgDiff">—</span></div>
+
     <div class="dbg-section">Last 3 raw CSV rows</div>
     <div class="dbg-raw" id="dbgRawSample">—</div>
   </div>
@@ -500,26 +555,28 @@
   <div id="budgetModal">
     <div class="row">
       <label>Monthly budget</label>
-      <button class="close-link" onclick="toggleBudgetModal()">Done</button>
+      <button class="close-link" id="budgetDoneBtn">Done</button>
     </div>
     <div class="budget-edit-row">
       <span class="prefix">RM</span>
       <input type="number" id="budgetInput" value="3360" inputmode="decimal">
-      <button class="save-btn" onclick="updateBudget()">Save</button>
+      <button class="save-btn" id="budgetSaveBtn">Save</button>
     </div>
   </div>
 
   <div class="date-row">
     <div class="date-field">
       <label>From</label>
-      <input type="date" id="startDate" onchange="filterData()">
+      <input type="date" id="startDate">
     </div>
     <span class="date-sep">→</span>
     <div class="date-field">
       <label>To</label>
-      <input type="date" id="endDate" onchange="filterData()">
+      <input type="date" id="endDate">
     </div>
   </div>
+
+  <p id="dateWarningArea"></p>
 
   <div class="card balance-card" style="margin-bottom:14px;">
     <span class="badge" id="statusBadge">On track</span>
@@ -581,10 +638,10 @@
 </main>
 
 <!-- Category Bottom Sheet -->
-<div class="sheet-backdrop" id="sheetBackdrop" onclick="closeSheet()"></div>
-<div class="sheet" id="categorySheet">
+<div class="sheet-backdrop" id="sheetBackdrop"></div>
+<div class="sheet" id="categorySheet" role="dialog" aria-modal="true" aria-labelledby="sheetCatName">
   <div class="sheet-handle-row"><div class="sheet-handle"></div></div>
-  <button class="sheet-close" onclick="closeSheet()" aria-label="Close">✕</button>
+  <button class="sheet-close" id="sheetCloseBtn" aria-label="Close">&times;</button>
   <div class="sheet-header">
     <div class="cat-hero">
       <div class="cat-icon-big" id="sheetIcon"></div>
@@ -601,626 +658,6 @@
   <div class="sheet-body" id="sheetBody"></div>
 </div>
 
-<script>
-  const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQNFbJjjGDrZb4lrKTxM_VSXCaJG-g20AV41NqdjWpZD-rpA0QNX9SbfvqI-y1gncXu1xTl-sg0KZdM/pub?gid=91853040&single=true&output=csv';
-
-  const MAX_SILENT_RETRIES = 2;
-  const RETRY_DELAY_MS = 1500;
-
-  const PALETTE = ['#5B5FEF','#8B5CF6','#D946A8','#F5A524','#14B8A6','#FF6F59','#3B82F6','#84CC16','#EC4899','#06B6D4','#F97316','#A855F7','#10B981','#6366F1'];
-  const CAT_ICONS = {
-    'groceries':'🛒','utilities & subscription':'💡','utilities':'💡','food':'🍔','transport':'🚗',
-    'gift & donation':'🎁','child care':'🧸','loan':'🏦','entertainment':'🎬','health':'💊',
-    'medical':'💊','shopping':'🛍️','education':'📚','travel':'✈️','rent':'🏠','insurance':'🛡️'
-  };
-  function colorFor(idx){ return PALETTE[idx % PALETTE.length]; }
-  function iconFor(name){ return CAT_ICONS[String(name).toLowerCase().trim()] || '🏷️'; }
-
-  let rawTransactions = [];
-  let currentBudget = 3360;
-  let monthlyChartInst = null;
-  let categoryChartInst = null;
-  let activeCategory = null;
-  let isFetching = false;
-  let debugPanelOpen = false;
-
-  // FIX: debug telemetry captured on every fetch attempt, surfaced via the
-  // "Show sync details" panel so we can see exactly what the app received
-  // without needing browser devtools.
-  let debugInfo = {
-    fetchedAt: null,
-    httpStatus: null,
-    rawRowCount: null,
-    parsedRowCount: null,
-    skippedRowCount: null,
-    rawSample: null
-  };
-
-  function fmtMoney(n){
-    return `RM ${n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}`;
-  }
-
-  function parseCsvLine(line){
-    const result = [];
-    let cur = '';
-    let inQuotes = false;
-    for(let i = 0; i < line.length; i++){
-      const ch = line[i];
-      if(inQuotes){
-        if(ch === '"'){
-          if(line[i+1] === '"'){ cur += '"'; i++; }
-          else { inQuotes = false; }
-        } else {
-          cur += ch;
-        }
-      } else {
-        if(ch === '"'){ inQuotes = true; }
-        else if(ch === ','){ result.push(cur); cur = ''; }
-        else { cur += ch; }
-      }
-    }
-    result.push(cur);
-    return result.map(v => v.trim());
-  }
-
-  function parseCsv(text){
-    const rows = [];
-    let cur = '';
-    let inQuotes = false;
-    for(let i = 0; i < text.length; i++){
-      const ch = text[i];
-      if(ch === '"') inQuotes = !inQuotes;
-      if(ch === '\n' && !inQuotes){
-        rows.push(cur);
-        cur = '';
-      } else if(ch !== '\r'){
-        cur += ch;
-      }
-    }
-    if(cur.trim().length) rows.push(cur);
-    return rows.map(parseCsvLine);
-  }
-
-  function parseFlexibleDate(dateStr){
-    if(!dateStr) return null;
-
-    // CRITICAL FIX: Never pass slash-format dates (DD/MM/YYYY) to new Date() directly.
-    // JavaScript reads "01/07/2026" as January 7th (MM/DD/YYYY), not July 1st.
-    // Your Google Form timestamps use DD/MM/YYYY, so this caused all July+ entries
-    // to be silently misdated to January and filtered out as outside the date window.
-    //
-    // Only trust new Date() for unambiguous ISO format: YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS
-    if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
-      const d = new Date(dateStr);
-      if (!isNaN(d)) return d;
-    }
-
-    // For everything else (DD/MM/YYYY HH:MM:SS from Google Forms), always parse manually
-    try{
-      const parts = dateStr.trim().split(' ');
-      const dateParts = parts[0].split(/[-/]/);
-      if(dateParts.length === 3){
-        let day, month, year;
-        if(dateParts[0].length === 4){
-          // YYYY-MM-DD (slash variant) — year first means year/month/day
-          year = parseInt(dateParts[0],10); month = parseInt(dateParts[1],10)-1; day = parseInt(dateParts[2],10);
-        } else {
-          // DD/MM/YYYY — Google Forms Malaysian locale: day first, always
-          day = parseInt(dateParts[0],10); month = parseInt(dateParts[1],10)-1; year = parseInt(dateParts[2],10);
-        }
-        let hour=0, minute=0, second=0;
-        if(parts[1]){
-          const tp = parts[1].split(':');
-          hour = parseInt(tp[0],10) || 0; minute = parseInt(tp[1],10) || 0; second = parseInt(tp[2],10) || 0;
-        }
-        const finalDate = new Date(year, month, day, hour, minute, second);
-        if(!isNaN(finalDate)) return finalDate;
-      }
-    } catch(e){ console.error('Failed to parse row date:', dateStr); }
-    return null;
-  }
-
-  window.addEventListener('DOMContentLoaded', () => {
-    const now = new Date();
-    let startYear = now.getFullYear();
-    let startMonth = now.getMonth();
-
-    if (now.getDate() < 25) {
-      startMonth = startMonth - 1;
-      if (startMonth < 0) {
-        startMonth = 11;
-        startYear = startYear - 1;
-      }
-    }
-
-    const cycleStart = new Date(startYear, startMonth, 25);
-    const cycleEnd = new Date(startYear, startMonth + 1, 24);
-
-    const fmtInputDate = (d) => {
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
-      return `${yyyy}-${mm}-${dd}`;
-    };
-
-    document.getElementById('startDate').value = fmtInputDate(cycleStart);
-    document.getElementById('endDate').value = fmtInputDate(cycleEnd);
-    fetchData();
-  });
-
-  function toggleBudgetModal(){
-    document.getElementById('budgetModal').classList.toggle('open');
-  }
-
-  function toggleDebugPanel(){
-    debugPanelOpen = !debugPanelOpen;
-    document.getElementById('debugPanel').classList.toggle('open', debugPanelOpen);
-    document.getElementById('debugToggleBtn').innerText = debugPanelOpen ? 'Hide sync details' : 'Show sync details';
-    if(debugPanelOpen) renderDebugPanel();
-  }
-
-  function updateBudget(){
-    const inputVal = document.getElementById('budgetInput').value;
-    if(inputVal && inputVal > 0){
-      currentBudget = parseFloat(inputVal);
-      filterData();
-      toggleBudgetModal();
-    }
-  }
-
-  function setSyncLabel(text, stale){
-    const row = document.getElementById('syncRow');
-    const label = document.getElementById('syncLabel');
-    label.innerText = text;
-    row.classList.toggle('stale', !!stale);
-  }
-
-  function formatSyncTime(d){
-    return d.toLocaleTimeString('en-MY', { hour:'numeric', minute:'2-digit', second:'2-digit' });
-  }
-
-  async function manualRefresh(){
-    if(isFetching) return;
-    const btn = document.getElementById('refreshBtn');
-    btn.classList.add('spinning');
-    btn.disabled = true;
-    setSyncLabel('Refreshing&hellip;');
-    await fetchData();
-    btn.classList.remove('spinning');
-    btn.disabled = false;
-  }
-
-  function wait(ms){ return new Promise(resolve => setTimeout(resolve, ms)); }
-
-  // FIX: now returns rich diagnostics (httpStatus, rawRowCount, sample rows,
-  // skipped-row count) alongside the parsed transactions, so fetchData() can
-  // populate the debug panel regardless of whether parsing succeeds.
-  async function attemptFetchOnce(){
-    const bustedUrl = CSV_URL + '&_=' + Date.now();
-    const response = await fetch(bustedUrl, { cache: 'no-store' });
-    const httpStatus = response.status;
-    if(!response.ok) throw new Error(`HTTP ${httpStatus}`);
-    const text = await response.text();
-    const rows = parseCsv(text);
-    const parsed = [];
-    let skipped = 0;
-
-    for(let i = 1; i < rows.length; i++){
-      const row = rows[i];
-      if(!row || row.length < 4){ skipped++; continue; }
-      if(row.every(cell => cell === '')){ skipped++; continue; }
-
-      const timestampStr = row[0];
-      const amount = parseFloat(String(row[1]).replace(/RM/gi,'').replace(/,/g,'').trim()) || 0;
-      const description = row[2] || 'Unspecified';
-      const category = row[3] || 'Other';
-      const parsedDate = parseFlexibleDate(timestampStr);
-
-      if(parsedDate){
-        parsed.push({ date: parsedDate, amount, description, category });
-      } else {
-        skipped++; // row had 4+ columns but the timestamp didn't parse
-      }
-    }
-
-    return {
-      parsed,
-      httpStatus,
-      rawRowCount: rows.length - 1, // minus header
-      skipped,
-      rawSample: rows.slice(-3).map(r => r.join(' | ')).join('\n')
-    };
-  }
-
-  async function fetchData(){
-    isFetching = true;
-    let lastError = null;
-
-    for(let attempt = 0; attempt <= MAX_SILENT_RETRIES; attempt++){
-      try{
-        const result = await attemptFetchOnce();
-        rawTransactions = result.parsed.sort((a,b) => b.date - a.date);
-
-        debugInfo = {
-          fetchedAt: new Date(),
-          httpStatus: result.httpStatus,
-          rawRowCount: result.rawRowCount,
-          parsedRowCount: result.parsed.length,
-          skippedRowCount: result.skipped,
-          rawSample: result.rawSample
-        };
-
-        filterData();
-        setSyncLabel(`Updated ${formatSyncTime(new Date())}`, false);
-        if(debugPanelOpen) renderDebugPanel();
-        isFetching = false;
-        return;
-      } catch(error){
-        lastError = error;
-        console.error(`Data ingestion attempt ${attempt + 1} failed:`, error);
-        debugInfo.httpStatus = error.message || 'network error';
-        debugInfo.fetchedAt = new Date();
-        if(attempt < MAX_SILENT_RETRIES){
-          setSyncLabel('Syncing&hellip;', false);
-          await wait(RETRY_DELAY_MS);
-        }
-      }
-    }
-
-    console.error('Data ingestion failure after retries:', lastError);
-    if(rawTransactions.length === 0){
-      document.getElementById('transactionList').innerHTML = `<p class="empty-state">Couldn't reach the ledger. Check your connection and reload.</p>`;
-    }
-    setSyncLabel('Couldn\'t refresh — tap to retry', true);
-    if(debugPanelOpen) renderDebugPanel();
-    isFetching = false;
-  }
-
-  // FIX: renders the debug panel from the captured debugInfo + current
-  // filter state, so the family can see at a glance whether new rows from
-  // the Google Form actually arrived in the CSV the app fetched.
-  function renderDebugPanel(){
-    document.getElementById('dbgFetchedAt').innerText = debugInfo.fetchedAt
-      ? debugInfo.fetchedAt.toLocaleString('en-MY')
-      : '—';
-    document.getElementById('dbgHttpStatus').innerText = debugInfo.httpStatus ?? '—';
-    document.getElementById('dbgRawRows').innerText = debugInfo.rawRowCount ?? '—';
-    document.getElementById('dbgParsedRows').innerText = debugInfo.parsedRowCount ?? '—';
-    document.getElementById('dbgSkippedRows').innerText = debugInfo.skippedRowCount ?? '—';
-    document.getElementById('dbgRawSample').innerText = debugInfo.rawSample || 'No data fetched yet';
-
-    if(rawTransactions.length > 0){
-      const newest = rawTransactions[0].date; // already sorted desc
-      const oldest = rawTransactions[rawTransactions.length - 1].date;
-      document.getElementById('dbgNewestDate').innerText = newest.toLocaleString('en-MY');
-      document.getElementById('dbgOldestDate').innerText = oldest.toLocaleString('en-MY');
-    } else {
-      document.getElementById('dbgNewestDate').innerText = '—';
-      document.getElementById('dbgOldestDate').innerText = '—';
-    }
-
-    const startStr = document.getElementById('startDate').value;
-    const endStr = document.getElementById('endDate').value;
-    document.getElementById('dbgFilterWindow').innerText = `${startStr} → ${endStr}`;
-    document.getElementById('dbgInWindow').innerText = `${lastFilteredData.length} of ${rawTransactions.length}`;
-  }
-
-  function filterData(){
-    const startStr = document.getElementById('startDate').value;
-    const endStr = document.getElementById('endDate').value;
-    const start = startStr ? new Date(startStr + 'T00:00:00') : null;
-    const end = endStr ? new Date(endStr + 'T23:59:59') : null;
-
-    const filtered = rawTransactions.filter(t => {
-      if(start && t.date < start) return false;
-      if(end && t.date > end) return false;
-      return true;
-    });
-    updateDashboard(filtered);
-    if(debugPanelOpen) renderDebugPanel();
-  }
-
-  let lastFilteredData = [];
-  let lastCategorySums = {};
-
-  function updateDashboard(data){
-    lastFilteredData = data;
-    let totalSpent = 0;
-    const categorySums = {};
-
-    data.forEach(t => {
-      totalSpent += t.amount;
-      categorySums[t.category] = (categorySums[t.category] || 0) + t.amount;
-    });
-    lastCategorySums = categorySums;
-
-    document.getElementById('totalSpentCard').innerText = fmtMoney(totalSpent);
-    document.getElementById('txnCount').innerText = data.length;
-
-    const statusLabel = document.getElementById('statusLabel');
-    const statusValueCard = document.getElementById('statusValueCard');
-    const statusSub = document.getElementById('statusSub');
-    const gaugeFill = document.getElementById('gaugeFill');
-    const statusBadge = document.getElementById('statusBadge');
-
-    const pctUsed = currentBudget > 0 ? Math.min((totalSpent / currentBudget) * 100, 100) : 0;
-    gaugeFill.style.width = pctUsed + '%';
-
-    if(totalSpent > currentBudget){
-      statusLabel.innerText = 'Budget Status';
-      statusValueCard.innerText = '⚠ Budget Burst';
-      statusValueCard.classList.add('burst');
-      statusValueCard.classList.remove('safe');
-      gaugeFill.classList.add('burst');
-      statusBadge.innerText = 'Over budget';
-      statusBadge.classList.add('burst');
-      statusSub.innerText = `${fmtMoney(totalSpent - currentBudget)} over the ${fmtMoney(currentBudget)} budget`;
-    } else {
-      statusLabel.innerText = 'Remaining Balance';
-      const remainder = currentBudget - totalSpent;
-      statusValueCard.innerText = fmtMoney(remainder);
-      statusValueCard.classList.add('safe');
-      statusValueCard.classList.remove('burst');
-      gaugeFill.classList.remove('burst');
-      statusBadge.innerText = 'On track';
-      statusBadge.classList.remove('burst');
-      statusSub.innerText = `of ${fmtMoney(currentBudget)} budgeted`;
-    }
-
-    renderDonut(categorySums, totalSpent);
-    renderLegend(categorySums, totalSpent);
-    renderCategoryList(categorySums, totalSpent);
-    renderMonthlyChart(rawTransactions);
-    renderTransactionFeed(data);
-  }
-
-  function renderDonut(categoryData, totalSpent){
-    const ctx = document.getElementById('categoryChart').getContext('2d');
-    const entries = Object.entries(categoryData).sort((a,b) => b[1]-a[1]);
-    const labels = entries.map(e => e[0]);
-    const values = entries.map(e => e[1]);
-    const colors = labels.map((_, i) => colorFor(i));
-
-    document.getElementById('topCategoryLabel').innerText = labels.length ? labels[0] : '—';
-
-    if(categoryChartInst) categoryChartInst.destroy();
-    if(labels.length === 0){
-      ctx.clearRect(0,0,200,200);
-      return;
-    }
-
-    categoryChartInst = new Chart(ctx, {
-      type: 'doughnut',
-      data: {
-        labels,
-        datasets: [{
-          data: values,
-          backgroundColor: colors,
-          borderWidth: 3,
-          borderColor: '#FFFFFF',
-          hoverOffset: 6
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: '68%',
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: '#161B33',
-            padding: 10,
-            cornerRadius: 10,
-            bodyFont: { family:'Inter', weight:'600' },
-            titleFont: { family:'Inter', weight:'700' },
-            callbacks: { label: (c) => fmtMoney(c.parsed) }
-          }
-        },
-        onClick: (evt, elements) => {
-          if(elements.length){
-            const idx = elements[0].index;
-            openSheet(labels[idx]);
-          }
-        }
-      }
-    });
-  }
-
-  function renderLegend(categoryData, totalSpent){
-    const grid = document.getElementById('legendGrid');
-    const catCount = document.getElementById('catCount');
-    const entries = Object.entries(categoryData).sort((a,b) => b[1]-a[1]);
-    catCount.innerText = entries.length ? `${entries.length} categories` : '';
-
-    if(entries.length === 0){
-      grid.innerHTML = '';
-      return;
-    }
-
-    grid.innerHTML = entries.map(([name, val], idx) => {
-      const pct = totalSpent > 0 ? (val/totalSpent*100) : 0;
-      const c = colorFor(idx);
-      const isActive = activeCategory === name;
-      return `
-        <div class="legend-chip${isActive ? ' active' : ''}" style="color:${c}" onclick="openSheet('${name.replace(/'/g,"\\'")}')">
-          <span class="dot" style="background:${c}"></span>
-          <span class="name" style="color:var(--ink)">${name}</span>
-          <span class="pct">${pct.toFixed(0)}%</span>
-        </div>`;
-    }).join('');
-  }
-
-  function setActiveCategory(name){
-    activeCategory = (activeCategory === name) ? null : name;
-    renderLegend(lastCategorySums, lastFilteredData.reduce((s,t)=>s+t.amount,0));
-    renderCategoryList(lastCategorySums, lastFilteredData.reduce((s,t)=>s+t.amount,0));
-    renderTransactionFeed(lastFilteredData);
-  }
-
-  // ===== Category Bottom Sheet =====
-
-  function openSheet(name){
-    const items = lastFilteredData
-      .filter(t => t.category === name)
-      .sort((a,b) => b.date - a.date);
-
-    const total = items.reduce((s,t) => s+t.amount, 0);
-    const sortedCats = Object.entries(lastCategorySums).sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
-    const catIdx = sortedCats.indexOf(name);
-    const color = colorFor(catIdx >= 0 ? catIdx : 0);
-    const icon = iconFor(name);
-
-    // Header
-    const iconEl = document.getElementById('sheetIcon');
-    iconEl.innerText = icon;
-    iconEl.style.background = color + '22';
-
-    document.getElementById('sheetCatName').innerText = name;
-    document.getElementById('sheetCatMeta').innerText =
-      `${items.length} transaction${items.length !== 1 ? 's' : ''}`;
-    document.getElementById('sheetCatTotal').innerText = fmtMoney(total);
-    document.getElementById('sheetCatTotal').style.color = color;
-
-    // Transaction list
-    const body = document.getElementById('sheetBody');
-    if(items.length === 0){
-      body.innerHTML = `<p class="empty-state">No transactions for this category.</p>`;
-    } else {
-      body.innerHTML = items.map((item, i) => `
-        <div class="sheet-txn">
-          <div class="left">
-            <span class="idx">${i+1}</span>
-            <div class="info">
-              <span class="desc">${item.description}</span>
-              <span class="date">${item.date.toLocaleDateString('en-MY', {weekday:'short', day:'numeric', month:'short', year:'numeric'})}</span>
-            </div>
-          </div>
-          <span class="amt nums">${fmtMoney(item.amount)}</span>
-        </div>`).join('');
-    }
-
-    // Open
-    document.body.style.overflow = 'hidden';
-    document.getElementById('sheetBackdrop').classList.add('open');
-    document.getElementById('categorySheet').classList.add('open');
-  }
-
-  function closeSheet(){
-    document.body.style.overflow = '';
-    document.getElementById('sheetBackdrop').classList.remove('open');
-    document.getElementById('categorySheet').classList.remove('open');
-  }
-
-  // Close sheet on Escape key
-  document.addEventListener('keydown', e => { if(e.key === 'Escape') closeSheet(); });
-
-  function renderCategoryList(categoryData, totalSpent){
-    const wrap = document.getElementById('categoryList');
-    const entries = Object.entries(categoryData).sort((a,b) => b[1]-a[1]);
-
-    if(entries.length === 0){
-      wrap.innerHTML = `<p class="empty-state">No spending yet in this range.</p>`;
-      return;
-    }
-
-    const maxVal = entries[0][1];
-
-    wrap.innerHTML = entries.map(([name, val], idx) => {
-      const barPct = maxVal > 0 ? (val/maxVal*100) : 0;
-      const c = colorFor(idx);
-      return `
-        <div class="cat-row" onclick="openSheet('${name.replace(/'/g,"\\'")}')">
-          <span class="swatch" style="background:${c}"></span>
-          <span class="name">${name}</span>
-          <span class="bar-track"><span class="bar-fill" style="width:${barPct}%; background:${c}"></span></span>
-          <span class="amt nums">${fmtMoney(val)}</span>
-        </div>`;
-    }).join('');
-  }
-
-  function renderMonthlyChart(allData){
-    const ctx = document.getElementById('monthlyChart').getContext('2d');
-    const monthlyTotals = {};
-
-    allData.forEach(t => {
-      const monthLabel = t.date.toLocaleString('default', { month:'short', year:'2-digit' });
-      monthlyTotals[monthLabel] = (monthlyTotals[monthLabel] || 0) + t.amount;
-    });
-
-    const labels = Object.keys(monthlyTotals).reverse().slice(-6);
-    const dataValues = labels.map(lbl => monthlyTotals[lbl]);
-
-    if(monthlyChartInst) monthlyChartInst.destroy();
-
-    const gradientColors = ['#5B5FEF','#8B5CF6','#D946A8','#F5A524','#14B8A6','#FF6F59'];
-
-    monthlyChartInst = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [{
-          data: dataValues,
-          backgroundColor: labels.map((_,i) => gradientColors[i % gradientColors.length]),
-          borderRadius: 8,
-          barThickness: 22
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display:false },
-          tooltip: {
-            backgroundColor: '#161B33',
-            padding: 10,
-            cornerRadius: 10,
-            bodyFont: { family:'Inter', weight:'600' },
-            callbacks: { label: (c) => fmtMoney(c.parsed.y) }
-          }
-        },
-        scales: {
-          y: { display:false, grid:{ display:false } },
-          x: { grid:{ display:false }, border:{ display:false }, ticks:{ font:{ size:11, family:'Inter', weight:'600' }, color:'#767C9B' } }
-        }
-      }
-    });
-  }
-
-  function renderTransactionFeed(items){
-    const listEl = document.getElementById('transactionList');
-    const visibleItems = activeCategory ? items.filter(i => i.category === activeCategory) : items;
-
-    if(items.length === 0){
-      listEl.innerHTML = `<p class="empty-state">No transactions logged for this range.</p>`;
-      return;
-    }
-    if(visibleItems.length === 0){
-      listEl.innerHTML = `<p class="empty-state">No "${activeCategory}" transactions in this range.</p>`;
-      return;
-    }
-
-    const sortedCats = Object.entries(lastCategorySums).sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
-
-    listEl.innerHTML = items.map(item => {
-      const dimmed = activeCategory && activeCategory !== item.category;
-      const catIdx = sortedCats.indexOf(item.category);
-      const c = colorFor(catIdx >= 0 ? catIdx : 0);
-      return `
-      <div class="txn${dimmed ? ' dimmed' : ''}">
-        <div class="left">
-          <div class="cat-dot" style="background:${c}22">${iconFor(item.category)}</div>
-          <div class="info">
-            <span class="desc">${item.description}</span>
-            <div class="meta">
-              <span class="pill">${item.category}</span>
-              <span class="date">${item.date.toLocaleDateString('en-MY', {day:'numeric', month:'short'})}</span>
-            </div>
-          </div>
-        </div>
-        <span class="amt nums">${fmtMoney(item.amount)}</span>
-      </div>`;
-    }).join('');
-  }
-</script>
+<script src="app.js"></script>
 </body>
 </html>
