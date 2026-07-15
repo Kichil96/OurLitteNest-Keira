@@ -7,7 +7,7 @@
    ============================================================ */
 
 /* ---- Config ---- */
-const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQNFbJjjGDrZb4lrKTxM_VSXCaJG-g20AV41NqdjWpZD-rpA0QNX9SbfvqI-y1gncXu1xTl-sg0KZdM/pub?gid=91853040&single=true&output=csv';
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT30-GpUI-2NRbv9x8p7KbhOZzLrk8DxuVn0rloOtFVoQK03oAVnqnG-mo4vJgkpKmr6dmHQtfunTCn/pub?output=csv';
 
 const MAX_SILENT_RETRIES = 2;
 const RETRY_DELAY_MS = 1500;
@@ -46,11 +46,8 @@ let _hasRendered = false;
 let localTransactions = [];
 let qaOpen = false;
 
-/* ---- Google Form Config ---- */
-const FORM_ID = '1FAIpQLSe5pI4e50UMp9aGq9v_ptoqbiuC-h39wU9q5gOWqzeAaOaMIA';
-const FORM_ENTRY_AMOUNT = 'entry.1425808336';
-const FORM_ENTRY_DESC = 'entry.598166227';
-const FORM_ENTRY_CATEGORY = 'entry.538750257';
+/* ---- Apps Script Config ---- */
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxJ41oHhJQe87bzpNAogMdQPOLPFPWgnUdaJbkxPbJgN8Iz0sq-DPggJt9KLviS94t6/exec';
 
 /* ---- DOM refs ---- */
 const $ = {};
@@ -708,21 +705,22 @@ async function submitTransaction() {
 
   addLocalTransaction(localEntry);
 
-  // Try to submit to Google Form
+  // Submit to Apps Script web app
   try {
-    const body = new URLSearchParams();
-    body.set(FORM_ENTRY_AMOUNT, String(amount));
-    body.set(FORM_ENTRY_DESC, desc);
-    body.set(FORM_ENTRY_CATEGORY, category);
-
-    const res = await fetch(`https://docs.google.com/forms/d/e/${FORM_ID}/formResponse`, {
+    const res = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: body.toString()
+      mode: 'cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount, description: desc, category })
     });
-    $.qaFootnote.innerText = 'Saved & synced to your Google Sheet \u2713';
-    $.qaFootnote.style.color = 'var(--green-500)';
+    const result = await res.json();
+    if (result.ok) {
+      $.qaFootnote.innerText = 'Saved & synced to your Google Sheet \u2713';
+      $.qaFootnote.style.color = 'var(--green-500)';
+    } else {
+      $.qaFootnote.innerText = 'Saved locally (server: ' + (result.error || 'unknown error') + ')';
+      $.qaFootnote.style.color = 'var(--burst)';
+    }
   } catch (_) {
     $.qaFootnote.innerText = 'Saved locally (offline) \u2713';
     $.qaFootnote.style.color = 'var(--green-500)';
