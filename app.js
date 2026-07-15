@@ -58,6 +58,7 @@ const $ = {};
 function cacheDom() {
   const ids = [
     'passwordGate','gateInput','gateBtn','gateError',
+    'themeBtn',
     'refreshBtn','syncRow','syncLabel','debugToggleBtn','debugPanel','budgetModal',
     'budgetInput','startDate','endDate','statusBadge','statusLabel','statusValueCard',
     'statusSub','gaugeFill','totalSpentCard','txnCount','catCount','topCategoryLabel',
@@ -514,6 +515,7 @@ function updateDashboard(data) {
   renderCategoryList(categorySums, totalSpent);
   renderMonthlyChart(data);
   renderTransactionFeed(data);
+  if (document.documentElement.classList.contains('dark')) updateChartsTheme(true);
 }
 
 /* ---- Donut chart ---- */
@@ -943,7 +945,30 @@ function renderTransactionFeed(items) {
 
 /* ---- Event setup (delegation) ---- */
 
+function toggleTheme() {
+  document.documentElement.classList.toggle('dark');
+  const isDark = document.documentElement.classList.contains('dark');
+  localStorage.setItem('ournest_dark', isDark ? '1' : '');
+  $.themeBtn.querySelector('.sun-icon').style.display = isDark ? 'none' : '';
+  $.themeBtn.querySelector('.moon-icon').style.display = isDark ? '' : 'none';
+  updateChartsTheme(isDark);
+}
+
+function updateChartsTheme(dark) {
+  const gridColor = dark ? '#1F2430' : '#ECEEF6';
+  const tickColor = dark ? '#6B7280' : '#767C9B';
+  [monthlyChartInst, categoryChartInst].forEach(chart => {
+    if (!chart) return;
+    const yScale = chart.options.scales?.y;
+    const xScale = chart.options.scales?.x;
+    if (yScale) { yScale.grid.color = gridColor; yScale.ticks.color = tickColor; }
+    if (xScale) { xScale.grid.color = gridColor; xScale.ticks.color = tickColor; }
+    chart.update();
+  });
+}
+
 function setupEvents() {
+  $.themeBtn.addEventListener('click', toggleTheme);
   $.syncRow.addEventListener('click', manualRefresh);
   $.refreshBtn.addEventListener('click', manualRefresh);
   $.debugToggleBtn.addEventListener('click', toggleDebugPanel);
@@ -1027,6 +1052,13 @@ function checkPassword() {
 }
 
 function startApp() {
+  /* ---- Dark Mode ---- */
+  if (localStorage.getItem('ournest_dark') === '1') {
+    document.documentElement.classList.add('dark');
+    $.themeBtn.querySelector('.sun-icon').style.display = 'none';
+    $.themeBtn.querySelector('.moon-icon').style.display = '';
+  }
+
   setTimeout(hideLoadingScreen, 4000);
 
   const cached = loadCachedTransactions();
