@@ -42,6 +42,15 @@ let debugPanelOpen = false;
 let prevTxnHashes = null;
 let filterDebounceTimer = null;
 let showAllTxns = false;
+let _hasRendered = false;
+let localTransactions = [];
+let qaOpen = false;
+
+/* ---- Google Form Config ---- */
+const FORM_ID = '1FAIpQLSe5pI4e50UMp9aGq9v_ptoqbiuC-h39wU9q5gOWqzeAaOaMIA';
+const FORM_ENTRY_AMOUNT = 'entry.1425808336';
+const FORM_ENTRY_DESC = 'entry.598166227';
+const FORM_ENTRY_CATEGORY = 'entry.538750257';
 
 /* ---- DOM refs ---- */
 const $ = {};
@@ -56,7 +65,8 @@ function cacheDom() {
     'sheetCatTotal','sheetBody','dbgFetchedAt','dbgHttpStatus','dbgRawRows',
     'dbgParsedRows','dbgSkippedRows','dbgRawSample','dbgNewestDate','dbgOldestDate',
     'dbgFilterWindow','dbgInWindow','dbgDiff','budgetSaveBtn','budgetDoneBtn',
-    'budgetEditBtn','sheetCloseBtn','dateWarningArea'
+    'budgetEditBtn','sheetCloseBtn','dateWarningArea','fabBtn','qaBackdrop','qaSheet',
+    'qaCloseBtn','qaAmount','qaDesc','qaCategory','qaSubmitBtn','qaFootnote'
   ];
   ids.forEach(id => { $[id] = document.getElementById(id); });
 }
@@ -197,7 +207,8 @@ function renderDebugPanel() {
 
   $.dbgFilterWindow.innerText = `${$.startDate.value} → ${$.endDate.value}`;
   const inWindowCount = getFilteredData().length;
-  $.dbgInWindow.innerText = `${inWindowCount} of ${rawTransactions.length}`;
+  const totalRows = rawTransactions.length + localTransactions.length;
+  $.dbgInWindow.innerText = `${inWindowCount} of ${totalRows}${localTransactions.length ? ' (' + localTransactions.length + ' local)' : ''}`;
 
   if ($.dbgDiff) {
     $.dbgDiff.innerText = prevTxnHashes
@@ -368,6 +379,11 @@ async function fetchData() {
       setSyncLabel('Offline — showing cached data', true);
     } else {
       hideSkeleton();
+      if (!_hasRendered) {
+        _hasRendered = true;
+        const ls = document.getElementById('loadingScreen');
+        if (ls) ls.classList.add('hidden');
+      }
       $.transactionList.innerHTML = '<p class="empty-state">Couldn\'t reach the ledger. Check your connection and reload.</p>';
       setSyncLabel('Can\'t reach the ledger — tap to retry', true);
     }
@@ -424,7 +440,8 @@ function filterData() {
     if (end && t.date > end) return false;
     return true;
   });
-  updateDashboard(filtered);
+  const merged = mergeLocalData(filtered);
+  updateDashboard(merged);
   if (debugPanelOpen) renderDebugPanel();
 }
 
@@ -433,11 +450,12 @@ function getFilteredData() {
   const endStr = $.endDate.value;
   const start = startStr ? new Date(startStr + 'T00:00:00') : null;
   const end = endStr ? new Date(endStr + 'T23:59:59') : null;
-  return rawTransactions.filter(t => {
+  const filtered = rawTransactions.filter(t => {
     if (start && t.date < start) return false;
     if (end && t.date > end) return false;
     return true;
   });
+  return mergeLocalData(filtered);
 }
 
 /* ---- Skeleton loading ---- */
@@ -460,6 +478,11 @@ function hideSkeleton() {
 /* ---- Dashboard rendering ---- */
 
 function updateDashboard(data) {
+  if (!_hasRendered) {
+    _hasRendered = true;
+    const ls = document.getElementById('loadingScreen');
+    if (ls) ls.classList.add('hidden');
+  }
   hideSkeleton();
   showAllTxns = false;
   $.transactionList.classList.remove('expanded');
@@ -636,6 +659,135 @@ function closeSheet() {
   $.categorySheet.classList.remove('open');
 }
 
+/* ---- Quick Add ---- */
+
+function openQuickAdd() {
+  qaOpen = true;
+  $.qaAmount.value = '';
+  $.qaDesc.value = '';
+  $.qaCategory.value = '';
+  $.qaSubmitBtn.disabled = false;
+  $.qaSubmitBtn.innerText = 'Add Transaction';
+  $.qaFootnote.innerText = 'Saved locally \u2022 also submits to your Google Sheet';
+  $.qaFootnote.style.color = '';
+  document.body.style.overflow = 'hidden';
+  $.qaBackdrop.classList.add('open');
+  $.qaSheet.classList.add('open');
+  setTimeout(() => $.qaAmount.focus(), 400);
+}
+
+function closeQuickAdd() {
+  qaOpen = false;
+  document.body.style.overflow = '';
+  $.qaBackdrop.classList.remove('open');
+  $.qaSheet.classList.remove('open');
+}
+
+async function submitTransaction() {
+  const amount = parseFloat($.qaAmount.value);
+  const desc = $.qaDesc.value.trim() || 'Manual entry';
+  const category = $.qaCategory.value.trim();
+
+  if (!amount || amount <= 0) {
+    $.qaAmount.focus();
+    $.qaAmount.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.2)';
+    setTimeout(() => { $.qaAmount.style.boxShadow = ''; }, 1500);
+    return;
+  }
+  if (!category) {
+    $.qaCategory.focus();
+    $.qaCategory.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.2)';
+    setTimeout(() => { $.qaCategory.style.boxShadow = ''; }, 1500);
+    return;
+  }
+
+  $.qaSubmitBtn.disabled = true;
+  $.qaSubmitBtn.innerText = 'Submitting\u2026';
+
+  const now = new Date();
+  const localEntry = {
+    date: now,
+    amount,
+    description: desc,
+    category,
+    _local: true,
+    _localId: Date.now() + '_' + Math.random().toString(36).slice(2, 8)
+  };
+
+  addLocalTransaction(localEntry);
+
+  // Try to submit to Google Form
+  try {
+    const body = new URLSearchParams();
+    body.set(FORM_ENTRY_AMOUNT, String(amount));
+    body.set(FORM_ENTRY_DESC, desc);
+    body.set(FORM_ENTRY_CATEGORY, category);
+
+    const res = await fetch(`https://docs.google.com/forms/d/e/${FORM_ID}/formResponse`, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString()
+    });
+    $.qaFootnote.innerText = 'Saved & synced to your Google Sheet \u2713';
+    $.qaFootnote.style.color = 'var(--green-500)';
+  } catch (_) {
+    $.qaFootnote.innerText = 'Saved locally (offline) \u2713';
+    $.qaFootnote.style.color = 'var(--green-500)';
+  }
+
+  setTimeout(() => closeQuickAdd(), 800);
+}
+
+function addLocalTransaction(entry) {
+  localTransactions.push(entry);
+  try {
+    const serializable = localTransactions.map(t => ({
+      date: t.date.toISOString(), amount: t.amount,
+      description: t.description, category: t.category,
+      _localId: t._localId
+    }));
+    localStorage.setItem('ournest_local_txns', JSON.stringify(serializable));
+  } catch (_) { /* ignore */ }
+
+  filterData();
+}
+
+function loadLocalTransactions() {
+  try {
+    const raw = localStorage.getItem('ournest_local_txns');
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    localTransactions = data.map(t => ({ ...t, date: new Date(t.date), _local: true }));
+  } catch (_) { localTransactions = []; }
+}
+
+function mergeLocalData(data) {
+  if (localTransactions.length === 0) return data;
+  const filterStart = $.startDate.value ? new Date($.startDate.value + 'T00:00:00') : null;
+  const filterEnd = $.endDate.value ? new Date($.endDate.value + 'T23:59:59') : null;
+
+  const inRange = localTransactions.filter(t => {
+    if (filterStart && t.date < filterStart) return false;
+    if (filterEnd && t.date > filterEnd) return false;
+    return true;
+  });
+
+  if (inRange.length === 0) return data;
+
+  const localHashes = new Set(localTransactions.map(t =>
+    `${t.amount}|${t.description}|${t.category}|${t._localId}`
+  ));
+
+  const deduped = data.filter(t => {
+    if (t._local) return false;
+    const h = `${t.amount}|${t.description}|${t.category}|${t._localId || ''}`;
+    return !localHashes.has(h);
+  });
+
+  return [...inRange, ...deduped].sort((a, b) => b.date - a.date);
+}
+
 /* ---- Category List ---- */
 
 function renderCategoryList(categoryData, totalSpent) {
@@ -750,14 +902,15 @@ function renderTransactionFeed(items) {
     const dimmed = activeCategory && activeCategory !== item.category;
     const catIdx = sortedCats.indexOf(item.category);
     const c = colorFor(catIdx >= 0 ? catIdx : 0);
+    const isLocal = item._local;
     return `
       <div class="txn${dimmed ? ' dimmed' : ''}">
         <div class="left">
-          <div class="cat-dot" style="background:${c}22">${iconFor(item.category)}</div>
+          <div class="cat-dot" style="background:${isLocal ? 'rgba(16,185,129,0.10)' : c + '22'}">${isLocal ? '📝' : iconFor(item.category)}</div>
           <div class="info">
-            <span class="desc">${escHtml(item.description)}</span>
+            <span class="desc">${escHtml(item.description)}${isLocal ? ' <span class="local-badge">Local</span>' : ''}</span>
             <div class="meta">
-              <span class="pill">${escHtml(item.category)}</span>
+              <span class="pill" style="${isLocal ? 'background:rgba(16,185,129,0.08);color:var(--green-600)' : ''}">${escHtml(item.category)}</span>
               <span class="date">
                 <time datetime="${item.date.toISOString().slice(0, 10)}">
                   ${item.date.toLocaleDateString('en-MY', { day: 'numeric', month: 'short' })}
@@ -799,7 +952,17 @@ function setupEvents() {
   if ($.budgetEditBtn) $.budgetEditBtn.addEventListener('click', toggleBudgetModal);
   $.startDate.addEventListener('change', debouncedFilter);
   $.endDate.addEventListener('change', debouncedFilter);
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { closeSheet(); closeQuickAdd(); }
+  });
+
+  $.fabBtn.addEventListener('click', openQuickAdd);
+  $.qaBackdrop.addEventListener('click', closeQuickAdd);
+  if ($.qaCloseBtn) $.qaCloseBtn.addEventListener('click', closeQuickAdd);
+  $.qaSubmitBtn.addEventListener('click', submitTransaction);
+  $.qaAmount.addEventListener('keydown', e => { if (e.key === 'Enter') $.qaDesc.focus(); });
+  $.qaDesc.addEventListener('keydown', e => { if (e.key === 'Enter') $.qaCategory.focus(); });
+  $.qaCategory.addEventListener('keydown', e => { if (e.key === 'Enter') submitTransaction(); });
 
   $.legendGrid.addEventListener('click', e => {
     const chip = e.target.closest('.legend-chip');
@@ -825,6 +988,8 @@ function setupEvents() {
 function init() {
   cacheDom();
   loadBudget();
+
+  loadLocalTransactions();
 
   const cached = loadCachedTransactions();
   if (cached.length > 0) {
