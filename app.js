@@ -315,6 +315,11 @@ function loadCachedTransactions() {
 
 async function fetchData() {
   isFetching = true;
+  showSkeleton();
+
+  if (rawTransactions.length > 0) {
+    setSyncLabel('Refreshing…', false);
+  }
   let lastError = null;
 
   for (let attempt = 0; attempt <= MAX_SILENT_RETRIES; attempt++) {
@@ -362,10 +367,12 @@ async function fetchData() {
       filterData();
       setSyncLabel('Offline — showing cached data', true);
     } else {
+      hideSkeleton();
       $.transactionList.innerHTML = '<p class="empty-state">Couldn\'t reach the ledger. Check your connection and reload.</p>';
       setSyncLabel('Can\'t reach the ledger — tap to retry', true);
     }
   } else {
+    hideSkeleton();
     setSyncLabel('Can\'t refresh — showing previous data', true);
   }
   if (debugPanelOpen) renderDebugPanel();
@@ -433,9 +440,27 @@ function getFilteredData() {
   });
 }
 
+/* ---- Skeleton loading ---- */
+const SKELETON_IDS = ['statusValueCard','statusSub','totalSpentCard','txnCount','legendGrid','categoryList','transactionList'];
+
+function showSkeleton() {
+  SKELETON_IDS.forEach(id => {
+    const el = $[id];
+    if (el && el.dataset.skeleton !== 'false') el.classList.add('skeleton');
+  });
+}
+
+function hideSkeleton() {
+  SKELETON_IDS.forEach(id => {
+    const el = $[id];
+    if (el) el.classList.remove('skeleton');
+  });
+}
+
 /* ---- Dashboard rendering ---- */
 
 function updateDashboard(data) {
+  hideSkeleton();
   showAllTxns = false;
   $.transactionList.classList.remove('expanded');
   const totalSpent = getTotalSpent(data);
@@ -804,6 +829,7 @@ function init() {
   const cached = loadCachedTransactions();
   if (cached.length > 0) {
     rawTransactions = cached;
+    showSkeleton();
     setSyncLabel('Loading…', false);
   }
 
