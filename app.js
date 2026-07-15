@@ -49,11 +49,15 @@ let qaOpen = false;
 /* ---- Apps Script Config ---- */
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzE2ELVEpqzz4UK7TbB6eycU_IjsxDLD1fWHC3MhlR2p_SGDHJrFLcjJbzBKpcNJzWXcg/exec';
 
+/* ---- Password Gate ---- */
+const APP_PASSWORD = '26122022'; // ← change this to your desired passcode
+
 /* ---- DOM refs ---- */
 const $ = {};
 
 function cacheDom() {
   const ids = [
+    'passwordGate','gateInput','gateBtn','gateError',
     'refreshBtn','syncRow','syncLabel','debugToggleBtn','debugPanel','budgetModal',
     'budgetInput','startDate','endDate','statusBadge','statusLabel','statusValueCard',
     'statusSub','gaugeFill','totalSpentCard','txnCount','catCount','topCategoryLabel',
@@ -941,6 +945,7 @@ function renderTransactionFeed(items) {
 
 function setupEvents() {
   $.syncRow.addEventListener('click', manualRefresh);
+  $.refreshBtn.addEventListener('click', manualRefresh);
   $.debugToggleBtn.addEventListener('click', toggleDebugPanel);
   $.sheetBackdrop.addEventListener('click', closeSheet);
   if ($.sheetCloseBtn) $.sheetCloseBtn.addEventListener('click', closeSheet);
@@ -995,6 +1000,33 @@ function init() {
   loadBudget();
   loadLocalTransactions();
 
+  /* ---- Password Gate ---- */
+  if (sessionStorage.getItem('ournest_unlocked') !== '1') {
+    $.gateBtn.addEventListener('click', checkPassword);
+    $.gateInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') checkPassword();
+    });
+    $.gateInput.focus();
+    return;
+  }
+  $.passwordGate.classList.add('hidden');
+  startApp();
+}
+
+function checkPassword() {
+  if ($.gateInput.value === APP_PASSWORD) {
+    sessionStorage.setItem('ournest_unlocked', '1');
+    $.gateError.classList.remove('show');
+    $.passwordGate.classList.add('hidden');
+    startApp();
+  } else {
+    $.gateError.classList.add('show');
+    $.gateInput.value = '';
+    $.gateInput.focus();
+  }
+}
+
+function startApp() {
   setTimeout(hideLoadingScreen, 4000);
 
   const cached = loadCachedTransactions();
