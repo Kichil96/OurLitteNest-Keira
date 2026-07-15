@@ -379,11 +379,7 @@ async function fetchData() {
       setSyncLabel('Offline — showing cached data', true);
     } else {
       hideSkeleton();
-      if (!_hasRendered) {
-        _hasRendered = true;
-        const ls = document.getElementById('loadingScreen');
-        if (ls) ls.classList.add('hidden');
-      }
+      hideLoadingScreen();
       $.transactionList.innerHTML = '<p class="empty-state">Couldn\'t reach the ledger. Check your connection and reload.</p>';
       setSyncLabel('Can\'t reach the ledger — tap to retry', true);
     }
@@ -478,11 +474,7 @@ function hideSkeleton() {
 /* ---- Dashboard rendering ---- */
 
 function updateDashboard(data) {
-  if (!_hasRendered) {
-    _hasRendered = true;
-    const ls = document.getElementById('loadingScreen');
-    if (ls) ls.classList.add('hidden');
-  }
+  hideLoadingScreen();
   hideSkeleton();
   showAllTxns = false;
   $.transactionList.classList.remove('expanded');
@@ -985,11 +977,20 @@ function setupEvents() {
 
 /* ---- Init ---- */
 
+function hideLoadingScreen() {
+  if (!_hasRendered) {
+    _hasRendered = true;
+    const ls = document.getElementById('loadingScreen');
+    if (ls) ls.classList.add('hidden');
+  }
+}
+
 function init() {
   cacheDom();
   loadBudget();
-
   loadLocalTransactions();
+
+  setTimeout(hideLoadingScreen, 4000);
 
   const cached = loadCachedTransactions();
   if (cached.length > 0) {
