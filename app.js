@@ -50,7 +50,8 @@ let qaOpen = false;
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzE2ELVEpqzz4UK7TbB6eycU_IjsxDLD1fWHC3MhlR2p_SGDHJrFLcjJbzBKpcNJzWXcg/exec';
 
 /* ---- Password Gate ---- */
-const APP_PASSWORD = '26122022'; // ← change this to your desired passcode
+const APP_PASSWORDS = ['5527', '5448'];
+const GATE_TTL_DAYS = 3;
 
 /* ---- DOM refs ---- */
 const $ = {};
@@ -58,7 +59,6 @@ const $ = {};
 function cacheDom() {
   const ids = [
     'passwordGate','passcodeDots','numpad','gateError',
-    'themeBtn',
     'refreshBtn','syncRow','syncLabel','debugToggleBtn','debugPanel','budgetModal',
     'budgetInput','startDate','endDate','statusBadge','statusLabel','statusValueCard',
     'statusSub','gaugeFill','totalSpentCard','txnCount','catCount','topCategoryLabel',
@@ -68,7 +68,8 @@ function cacheDom() {
     'dbgParsedRows','dbgSkippedRows','dbgRawSample','dbgNewestDate','dbgOldestDate',
     'dbgFilterWindow','dbgInWindow','dbgDiff','budgetSaveBtn','budgetDoneBtn',
     'budgetEditBtn','sheetCloseBtn','dateWarningArea','fabBtn','qaBackdrop','qaSheet',
-    'qaCloseBtn','qaAmount','qaDesc','qaCategory','qaSubmitBtn','qaFootnote'
+    'qaCloseBtn','qaAmount','qaDesc','qaCategory','qaSubmitBtn','qaFootnote',
+    'paydayCountdown','dailyAvg','exportBtn'
   ];
   ids.forEach(id => { $[id] = document.getElementById(id); });
 }
@@ -510,12 +511,63 @@ function updateDashboard(data) {
     $.statusSub.innerText = `of ${fmtMoney(currentBudget)} budgeted`;
   }
 
+  /* Daily average */
+  const cycle = getCycleDates();
+  const totalDays = Math.round((cycle.end - cycle.start) / 86400000) + 1;
+  const daysElapsed = Math.max(1, Math.round((new Date() - cycle.start) / 86400000) + 1);
+  const avgDay = totalSpent / daysElapsed;
+  const budgetDay = currentBudget / totalDays;
+  $.dailyAvg.innerHTML = `<span>RM ${avgDay.toFixed(2)}</span>/day spent · <span>RM ${budgetDay.toFixed(2)}</span>/day budgeted`;
+
+  /* Previous cycle comparison */
+  const prevData = rawTransactions.filter(t => t.date >= cycle.prevStart && t.date <= cycle.prevEnd);
+  const prevCatSums = getCategorySums(mergeLocalData(prevData));
+
   renderDonut(categorySums, totalSpent);
   renderLegend(categorySums, totalSpent);
-  renderCategoryList(categorySums, totalSpent);
+  renderCategoryList(categorySums, totalSpent, prevCatSums);
   renderMonthlyChart(data);
   renderTransactionFeed(data);
-  if (document.documentElement.classList.contains('dark')) updateChartsTheme(true);
+  updatePaydayCountdown();
+}
+
+function getCycleDates() {
+  const now = new Date();
+  let y = now.getFullYear();
+  let m = now.getMonth();
+  if (now.getDate() < 25) { m -= 1; if (m < 0) { m = 11; y -= 1; } }
+  return {
+    start: new Date(y, m, 25),
+    end: new Date(y, m + 1, 24),
+    prevStart: new Date(y, m - 1, 25),
+    prevEnd: new Date(y, m, 24)
+  };
+}
+  const now = new Date();
+  let payday = new Date(now.getFullYear(), now.getMonth(), 25);
+  if (now.getDate() >= 25) payday.setMonth(payday.getMonth() + 1);
+  const diff = Math.ceil((payday - now) / 86400000);
+  $.paydayCountdown.innerHTML = diff === 0
+    ? 'Payday today <span>🎉</span>'
+    : `<span>${diff}</span> day${diff === 1 ? '' : 's'} until next payday`;
+}
+
+function exportCSV() {
+  const data = getFilteredData();
+  if (data.length === 0) { alert('No transactions to export.'); return; }
+  const rows = [['Timestamp','Amount','Description','Category']];
+  data.forEach(t => {
+    const d = t.date instanceof Date ? t.date : new Date(t.date);
+    const ts = isNaN(d.getTime()) ? '' : d.toLocaleString('en-MY', { hour12:false }).replace(',', '');
+    rows.push([ts, t.amount.toFixed(2), `"${(t.description || '').replace(/"/g,'""')}"`, t.category]);
+  });
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ournest_transactions.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 
 /* ---- Donut chart ---- */
@@ -539,7 +591,7 @@ function renderDonut(categoryData, totalSpent, labels) {
         labels: cats,
         datasets: [{
           data: values, backgroundColor: colors, borderWidth: 3,
-          borderColor: '#FFFFFF', hoverOffset: 6
+          borderColor: '#181C24', hoverOffset: 6
         }]
       },
       options: {
@@ -793,7 +845,7 @@ function mergeLocalData(data) {
 
 /* ---- Category List ---- */
 
-function renderCategoryList(categoryData, totalSpent) {
+function renderCategoryList(categoryData, totalSpent, prevData) {
   const entries = Object.entries(categoryData).sort((a, b) => b[1] - a[1]);
 
   if (entries.length === 0) {
@@ -806,12 +858,22 @@ function renderCategoryList(categoryData, totalSpent) {
   $.categoryList.innerHTML = entries.map(([name, val], idx) => {
     const barPct = maxVal > 0 ? (val / maxVal * 100) : 0;
     const c = colorFor(idx);
+    const prev = prevData ? (prevData[name] || 0) : 0;
+    let diffHtml = '';
+    if (prev > 0) {
+      const pct = ((val - prev) / prev * 100);
+      const sign = pct >= 0 ? '▲' : '▼';
+      const cls = pct > 0 ? 'diff-up' : 'diff-down';
+      diffHtml = ` <span class="${cls}">${sign}${Math.abs(Math.round(pct))}%</span>`;
+    } else if (val > 0) {
+      diffHtml = ' <span class="diff-new">New</span>';
+    }
     return `
       <div class="cat-row" data-category="${escHtml(name)}">
         <span class="swatch" style="background:${c}"></span>
         <span class="name">${escHtml(name)}</span>
         <span class="bar-track"><span class="bar-fill" style="width:${barPct}%; background:${c}"></span></span>
-        <span class="amt nums">${fmtMoney(val)}</span>
+        <span class="amt nums">${fmtMoney(val)}${diffHtml}</span>
       </div>`;
   }).join('');
 }
@@ -860,18 +922,18 @@ function renderMonthlyChart(allData) {
         scales: {
           y: {
             display: true,
-            grid: { color: '#ECEEF6' },
+            grid: { color: '#1F2430' },
             border: { display: false },
             ticks: {
               font: { size: 10, family: 'Inter', weight: '600' },
-              color: '#767C9B',
+              color: '#6B7280',
               callback: (v) => 'RM' + Number(v).toLocaleString('en-US')
             }
           },
           x: {
             grid: { display: false },
             border: { display: false },
-            ticks: { font: { size: 11, family: 'Inter', weight: '600' }, color: '#767C9B' }
+            ticks: { font: { size: 11, family: 'Inter', weight: '600' }, color: '#6B7280' }
           }
         }
       }
@@ -945,30 +1007,8 @@ function renderTransactionFeed(items) {
 
 /* ---- Event setup (delegation) ---- */
 
-function toggleTheme() {
-  document.documentElement.classList.toggle('dark');
-  const isDark = document.documentElement.classList.contains('dark');
-  localStorage.setItem('ournest_dark', isDark ? '1' : '');
-  $.themeBtn.querySelector('.sun-icon').style.display = isDark ? 'none' : '';
-  $.themeBtn.querySelector('.moon-icon').style.display = isDark ? '' : 'none';
-  updateChartsTheme(isDark);
-}
-
-function updateChartsTheme(dark) {
-  const gridColor = dark ? '#1F2430' : '#ECEEF6';
-  const tickColor = dark ? '#6B7280' : '#767C9B';
-  [monthlyChartInst, categoryChartInst].forEach(chart => {
-    if (!chart) return;
-    const yScale = chart.options.scales?.y;
-    const xScale = chart.options.scales?.x;
-    if (yScale) { yScale.grid.color = gridColor; yScale.ticks.color = tickColor; }
-    if (xScale) { xScale.grid.color = gridColor; xScale.ticks.color = tickColor; }
-    chart.update();
-  });
-}
-
 function setupEvents() {
-  $.themeBtn.addEventListener('click', toggleTheme);
+  $.exportBtn.addEventListener('click', exportCSV);
   $.syncRow.addEventListener('click', manualRefresh);
   $.refreshBtn.addEventListener('click', manualRefresh);
   $.debugToggleBtn.addEventListener('click', toggleDebugPanel);
@@ -1025,8 +1065,9 @@ function init() {
   loadBudget();
   loadLocalTransactions();
 
-  /* ---- Password Gate ---- */
-  if (sessionStorage.getItem('ournest_unlocked') !== '1') {
+  /* ---- Password Gate (3-day TTL) ---- */
+  const unlockedAt = localStorage.getItem('ournest_unlocked_at');
+  if (!unlockedAt || Date.now() - Number(unlockedAt) > GATE_TTL_DAYS * 86400000) {
     buildNumpad();
     buildDots();
     setupGateKeys();
@@ -1038,10 +1079,11 @@ function init() {
 }
 
 let passcodeInput = '';
+const PASS_LEN = APP_PASSWORDS[0].length;
 
 function buildDots() {
   $.passcodeDots.innerHTML = '';
-  for (let i = 0; i < APP_PASSWORD.length; i++) {
+  for (let i = 0; i < PASS_LEN; i++) {
     const dot = document.createElement('div');
     dot.className = 'passcode-dot';
     dot.dataset.idx = i;
@@ -1076,7 +1118,7 @@ function buildNumpad() {
 }
 
 function setupGateKeys() {
-  $.numpad.addEventListener('click', e => {
+  $.numpad.addEventListener('pointerdown', e => {
     const btn = e.target.closest('.numpad-key');
     if (!btn || btn.classList.contains('empty')) return;
     const val = btn.dataset.value;
@@ -1086,19 +1128,19 @@ function setupGateKeys() {
       updateDots();
       return;
     }
-    if (passcodeInput.length >= APP_PASSWORD.length) return;
+    if (passcodeInput.length >= PASS_LEN) return;
     passcodeInput += val;
     $.gateError.classList.remove('show');
     updateDots();
-    if (passcodeInput.length === APP_PASSWORD.length) {
+    if (passcodeInput.length === PASS_LEN) {
       checkPassword();
     }
   });
 }
 
 function checkPassword() {
-  if (passcodeInput === APP_PASSWORD) {
-    sessionStorage.setItem('ournest_unlocked', '1');
+  if (APP_PASSWORDS.includes(passcodeInput)) {
+    localStorage.setItem('ournest_unlocked_at', String(Date.now()));
     $.passwordGate.classList.add('hidden');
     startApp();
   } else {
@@ -1112,13 +1154,7 @@ function checkPassword() {
 }
 
 function startApp() {
-  /* ---- Dark Mode ---- */
-  if (localStorage.getItem('ournest_dark') === '1') {
-    document.documentElement.classList.add('dark');
-    $.themeBtn.querySelector('.sun-icon').style.display = 'none';
-    $.themeBtn.querySelector('.moon-icon').style.display = '';
-  }
-
+  updatePaydayCountdown();
   setTimeout(hideLoadingScreen, 4000);
 
   const cached = loadCachedTransactions();
@@ -1128,20 +1164,7 @@ function startApp() {
     setSyncLabel('Loading…', false);
   }
 
-  const now = new Date();
-  let startYear = now.getFullYear();
-  let startMonth = now.getMonth();
-
-  if (now.getDate() < 25) {
-    startMonth -= 1;
-    if (startMonth < 0) {
-      startMonth = 11;
-      startYear -= 1;
-    }
-  }
-
-  const cycleStart = new Date(startYear, startMonth, 25);
-  const cycleEnd = new Date(startYear, startMonth + 1, 24);
+  const cycle = getCycleDates();
 
   const fmtInputDate = (d) => {
     const yyyy = d.getFullYear();
@@ -1150,8 +1173,8 @@ function startApp() {
     return `${yyyy}-${mm}-${dd}`;
   };
 
-  $.startDate.value = fmtInputDate(cycleStart);
-  $.endDate.value = fmtInputDate(cycleEnd);
+  $.startDate.value = fmtInputDate(cycle.start);
+  $.endDate.value = fmtInputDate(cycle.end);
 
   setupEvents();
 

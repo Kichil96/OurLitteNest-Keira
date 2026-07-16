@@ -67,31 +67,6 @@
     --green-600: #059669;
     --green-700: #047857;
 
-    --bg: #F4F6F9;
-    --surface: rgba(255,255,255,0.82);
-    --surface-solid: #FFFFFF;
-    --ink: #0B1120;
-    --ink-soft: #64748B;
-    --ink-faint: #94A3B8;
-    --line: #E8EDF2;
-    --safe: #10B981;
-    --burst: #EF4444;
-
-    --radius-sm: 10px;
-    --radius-md: 16px;
-    --radius-lg: 24px;
-    --radius-xl: 32px;
-
-    --shadow-sm: 0 1px 3px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.04);
-    --shadow-md: 0 4px 24px rgba(16,185,129,0.08), 0 1px 4px rgba(0,0,0,0.04);
-    --shadow-lg: 0 8px 40px rgba(16,185,129,0.10), 0 2px 8px rgba(0,0,0,0.04);
-    --shadow-xl: 0 16px 48px rgba(16,185,129,0.12), 0 4px 12px rgba(0,0,0,0.06);
-
-    --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    --font-num: 'Space Grotesk', 'Inter', monospace;
-  }
-
-  .dark {
     --bg: #0F1218;
     --surface: rgba(25,30,40,0.85);
     --surface-solid: #181C24;
@@ -101,10 +76,19 @@
     --line: #1F2430;
     --safe: #34D399;
     --burst: #F87171;
+
+    --radius-sm: 10px;
+    --radius-md: 16px;
+    --radius-lg: 24px;
+    --radius-xl: 32px;
+
     --shadow-sm: 0 1px 3px rgba(0,0,0,0.2);
     --shadow-md: 0 4px 24px rgba(0,0,0,0.3);
     --shadow-lg: 0 8px 40px rgba(0,0,0,0.35);
     --shadow-xl: 0 16px 48px rgba(0,0,0,0.4);
+
+    --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-num: 'Space Grotesk', 'Inter', monospace;
   }
 
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; margin:0; padding:0; }
@@ -114,7 +98,6 @@
     background:var(--bg);
     color:var(--ink);
     font-family:var(--font);
-    transition:background .3s, color .3s;
     padding:
       env(safe-area-inset-top, 0px)
       env(safe-area-inset-right, 0px)
@@ -193,50 +176,86 @@
     border: 1px solid rgba(255,255,255,0.5);
   }
   .glass-strong {
-    background: rgba(255,255,255,0.92);
+    background: rgba(25,30,40,0.88);
     backdrop-filter: blur(32px) saturate(1.6);
     -webkit-backdrop-filter: blur(32px) saturate(1.6);
-    border: 1px solid rgba(255,255,255,0.6);
-    transition:background .3s, border-color .3s;
-  }
-  .dark .glass-strong {
-    background: rgba(25,30,40,0.88);
-    border-color: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.06);
   }
 
-  /* ===== Floating Nav ===== */
-  .nav {
+  /* ===== Hero Header (sticky) ===== */
+  .hero-header{
     position:sticky;
     top:calc(12px + env(safe-area-inset-top, 0px));
     z-index:50;
     margin:0 14px;
-    padding:12px 16px;
+    padding:16px 20px 14px;
     border-radius:var(--radius-xl);
+    animation:slideUp .5s cubic-bezier(.16,1,.3,1) both;
+    overflow:hidden;
+  }
+  .hero-top{
     display:flex;
     justify-content:space-between;
     align-items:center;
-    animation:slideUp .5s cubic-bezier(.16,1,.3,1) both;
+    margin-bottom:16px;
   }
-  .nav-brand{ display:flex; align-items:center; gap:12px; }
-  .nav-logo{
-    width:36px; height:36px; border-radius:12px;
+  .hero-brand{ display:flex; align-items:center; gap:12px; }
+  .hero-logo{
+    width:40px; height:40px; border-radius:14px;
     overflow:hidden; flex-shrink:0;
-    box-shadow:0 1px 4px rgba(0,0,0,0.06);
+    box-shadow:0 2px 8px rgba(0,0,0,0.15);
   }
-  .nav-logo img{ width:100%; height:100%; object-fit:cover; }
-  .nav-title{
+  .hero-logo img{ width:100%; height:100%; object-fit:cover; }
+  .hero-title-text{
     font-family:var(--font-num);
-    font-weight:700; font-size:16px;
-    letter-spacing:-0.02em;
+    font-weight:800; font-size:18px;
+    letter-spacing:-0.03em;
     color:var(--ink);
     line-height:1.2;
   }
-  .nav-sub{
-    font-size:10px; font-weight:600;
-    color:var(--green-500); letter-spacing:0.03em;
+  .hero-sub-text{
+    font-size:10px; font-weight:700;
+    color:var(--green-500); letter-spacing:0.04em;
     text-transform:uppercase;
   }
-  .nav-actions{ display:flex; gap:6px; align-items:center; }
+  .hero-actions{ display:flex; gap:6px; align-items:center; }
+  .hero-budget{ position:relative; z-index:2; }
+  .hero-label{
+    font-size:11px; font-weight:600;
+    color:var(--ink-soft); text-transform:uppercase;
+    letter-spacing:0.06em; margin-bottom:2px;
+  }
+  .hero-amount{
+    font-family:var(--font-num);
+    font-size:40px; font-weight:800;
+    letter-spacing:-0.04em;
+    line-height:1;
+    color:var(--ink);
+    transition:color .25s;
+    margin:0 0 4px;
+  }
+  .hero-amount.burst{ color:var(--burst); }
+  .hero-amount.safe{ color:var(--green-400); }
+  .hero-footnote{
+    font-size:11px; font-weight:600;
+    color:var(--ink-faint);
+  }
+  .hero-countdown{
+    font-size:11px; font-weight:600;
+    color:var(--ink-soft); margin-top:6px;
+  }
+  .hero-countdown span{ color:var(--green-400); }
+  .hero-daily{
+    font-size:10px; font-weight:600;
+    color:var(--ink-faint); margin-top:2px;
+  }
+  .hero-daily span{ color:var(--ink-soft); }
+  .hero-glow{
+    position:absolute; top:-60%; right:-10%;
+    width:200px; height:200px;
+    background:radial-gradient(circle, rgba(16,185,129,0.08) 0%, transparent 70%);
+    pointer-events:none; z-index:0;
+  }
   .nav-btn{
     width:38px; height:38px; border-radius:14px;
     border:none; display:flex; align-items:center; justify-content:center;
@@ -267,30 +286,6 @@
     background:var(--green-400); flex-shrink:0;
   }
   .sync-row.stale .dot{ background:var(--ink-faint); }
-
-  /* ===== Header Section ===== */
-  .hero-section{
-    margin-bottom:12px;
-    animation:slideUp .5s cubic-bezier(.16,1,.3,1) .08s both;
-  }
-  .hero-greeting{
-    font-size:13px; font-weight:600;
-    color:var(--ink-soft); margin-bottom:4px;
-  }
-  .hero-title{
-    font-family:var(--font-num);
-    font-size:36px; font-weight:800;
-    letter-spacing:-0.03em;
-    line-height:1.1;
-    color:var(--ink);
-    transition: color .25s;
-  }
-  .hero-title.burst{ color:var(--burst); }
-  .hero-title.safe{ color:var(--green-600); }
-  .hero-sub{
-    font-size:14px; font-weight:500;
-    color:var(--ink-soft); margin-top:6px;
-  }
 
   /* ===== Balance Card ===== */
   .balance-card{
@@ -362,7 +357,7 @@
 
   /* ===== Stats Grid ===== */
   .stats-grid{
-    display:grid; grid-template-columns:1fr 1fr;
+    display:grid; grid-template-columns:1fr 1fr 1fr;
     gap:10px; margin-bottom:16px;
   }
   .stat-card{
@@ -372,6 +367,7 @@
   }
   .stat-card:nth-child(1){ animation-delay:.2s; }
   .stat-card:nth-child(2){ animation-delay:.26s; }
+  .stat-card:nth-child(3){ animation-delay:.32s; }
   .stat-icon{
     width:32px; height:32px; border-radius:10px;
     display:flex; align-items:center; justify-content:center;
@@ -479,7 +475,11 @@
   .cat-row .amt{
     font-family:var(--font-num); font-size:13px; font-weight:700;
     width:76px; text-align:right; flex-shrink:0;
+    display:flex; flex-direction:column; align-items:flex-end; gap:1px;
   }
+  .diff-up{ font-size:9px; font-weight:700; color:var(--burst); }
+  .diff-down{ font-size:9px; font-weight:700; color:var(--safe); }
+  .diff-new{ font-size:9px; font-weight:700; color:var(--ink-faint); }
 
   /* ===== Transaction Feed ===== */
   .scroller{ max-height:400px; overflow-y:auto; }
@@ -917,6 +917,7 @@
     display:flex; align-items:center; justify-content:center;
     -webkit-tap-highlight-color:transparent;
     user-select:none; -webkit-user-select:none;
+    touch-action:manipulation;
   }
   .numpad-key:active{
     background:var(--line); transform:scale(0.92);
@@ -940,28 +941,34 @@
   </div>
 </div>
 
-<!-- ===== Floating Nav ===== -->
-<nav class="nav glass-strong">
-  <div class="nav-brand">
-    <div class="nav-logo"><img src="image.png" alt="" class="logo-img"></div>
-    <div>
-      <div class="nav-title">Our Little Nest</div>
-      <div class="nav-sub">Family cash flow</div>
+<!-- ===== Hero Header (sticky) ===== -->
+<header class="hero-header glass-strong">
+  <div class="hero-top">
+    <div class="hero-brand">
+      <div class="hero-logo"><img src="image.png" alt="" class="logo-img"></div>
+      <div>
+        <div class="hero-title-text">Our Little Nest</div>
+        <div class="hero-sub-text">Family cash flow</div>
+      </div>
+    </div>
+    <div class="hero-actions">
+      <button class="nav-btn" id="refreshBtn" aria-label="Refresh data">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
+      </button>
+      <button class="nav-btn" id="budgetEditBtn" aria-label="Adjust budget">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="9" cy="6" r="1.8" fill="currentColor" stroke="none"/><circle cx="16" cy="12" r="1.8" fill="currentColor" stroke="none"/><circle cx="12" cy="18" r="1.8" fill="currentColor" stroke="none"/></svg>
+      </button>
     </div>
   </div>
-  <div class="nav-actions">
-    <button class="nav-btn" id="themeBtn" aria-label="Toggle dark mode">
-      <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-      <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="display:none"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-    </button>
-    <button class="nav-btn" id="refreshBtn" aria-label="Refresh data">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
-    </button>
-    <button class="nav-btn" id="budgetEditBtn" aria-label="Adjust budget">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="9" cy="6" r="1.8" fill="currentColor" stroke="none"/><circle cx="16" cy="12" r="1.8" fill="currentColor" stroke="none"/><circle cx="12" cy="18" r="1.8" fill="currentColor" stroke="none"/></svg>
-    </button>
+  <div class="hero-budget">
+    <p class="hero-label">Your Budget</p>
+    <p class="hero-amount nums" id="statusValueCard">RM 0.00</p>
+    <p class="hero-footnote" id="statusSub">of RM 3,360.00 budgeted</p>
+    <p class="hero-countdown" id="paydayCountdown"></p>
+    <p class="hero-daily" id="dailyAvg"></p>
   </div>
-</nav>
+  <div class="hero-glow"></div>
+</header>
 
 <main>
 
@@ -969,13 +976,6 @@
   <div class="sync-row clickable" id="syncRow" role="status" aria-live="polite">
     <span class="dot"></span>
     <span id="syncLabel">Syncing&hellip;</span>
-  </div>
-
-  <!-- ===== Hero ===== -->
-  <div class="hero-section">
-    <p class="hero-greeting">Your Budget</p>
-    <p class="hero-title num-font nums" id="statusValueCard">RM 0.00</p>
-    <p class="hero-sub" id="statusSub">of RM 3,360.00 budgeted</p>
   </div>
 
   <!-- ===== Balance Card ===== -->
@@ -998,6 +998,11 @@
       <div class="stat-icon" style="background:rgba(16,185,129,0.08); color:var(--green-500);">🧾</div>
       <div class="stat-label">Transactions</div>
       <div class="stat-value num-font nums" id="txnCount">0</div>
+    </div>
+    <div class="stat-card glass" id="exportBtn" style="cursor:pointer">
+      <div class="stat-icon" style="background:rgba(16,185,129,0.08); color:var(--green-500);">⬇️</div>
+      <div class="stat-label">Export CSV</div>
+      <div class="stat-value num-font" style="font-size:12px;font-weight:600;color:var(--green-400)">Download</div>
     </div>
   </div>
 
