@@ -1068,9 +1068,7 @@ function init() {
   /* ---- Password Gate (3-day TTL) ---- */
   const unlockedAt = localStorage.getItem('ournest_unlocked_at');
   if (!unlockedAt || Date.now() - Number(unlockedAt) > GATE_TTL_DAYS * 86400000) {
-    buildNumpad();
     buildDots();
-    setupGateKeys();
     updateDots();
     return;
   }
@@ -1080,6 +1078,23 @@ function init() {
 
 let passcodeInput = '';
 const PASS_LEN = APP_PASSWORDS[0].length;
+
+function numpadTap(val) {
+  if (val === 'delete') {
+    passcodeInput = passcodeInput.slice(0, -1);
+    $.gateError.classList.remove('show');
+    updateDots();
+    return;
+  }
+  if (passcodeInput.length >= PASS_LEN) return;
+  passcodeInput += val;
+  $.gateError.classList.remove('show');
+  updateDots();
+  if (passcodeInput.length === PASS_LEN) {
+    checkPassword();
+  }
+}
+window.numpadTap = numpadTap;
 
 function buildDots() {
   $.passcodeDots.innerHTML = '';
@@ -1095,47 +1110,6 @@ function updateDots() {
   const dots = $.passcodeDots.querySelectorAll('.passcode-dot');
   dots.forEach((dot, i) => {
     dot.classList.toggle('filled', i < passcodeInput.length);
-  });
-}
-
-function buildNumpad() {
-  const keys = ['1','2','3','4','5','6','7','8','9','','0','delete'];
-  $.numpad.innerHTML = '';
-  keys.forEach(val => {
-    const btn = document.createElement('button');
-    btn.className = 'numpad-key';
-    if (val === '') {
-      btn.classList.add('empty');
-    } else if (val === 'delete') {
-      btn.classList.add('delete');
-      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>';
-    } else {
-      btn.textContent = val;
-    }
-    btn.dataset.value = val;
-    $.numpad.appendChild(btn);
-  });
-}
-
-function setupGateKeys() {
-  $.numpad.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
-  $.numpad.addEventListener('click', e => {
-    const btn = e.target.closest('.numpad-key');
-    if (!btn || btn.classList.contains('empty')) return;
-    const val = btn.dataset.value;
-    if (val === 'delete') {
-      passcodeInput = passcodeInput.slice(0, -1);
-      $.gateError.classList.remove('show');
-      updateDots();
-      return;
-    }
-    if (passcodeInput.length >= PASS_LEN) return;
-    passcodeInput += val;
-    $.gateError.classList.remove('show');
-    updateDots();
-    if (passcodeInput.length === PASS_LEN) {
-      checkPassword();
-    }
   });
 }
 
