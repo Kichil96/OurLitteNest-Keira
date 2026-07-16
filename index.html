@@ -684,7 +684,10 @@
     background:none; border:none; cursor:pointer; padding:0;
     font-family:var(--font);
   }
-  .budget-edit-row{ display:flex; gap:10px; align-items:center; }
+  .budget-edit-row{ display:flex; flex-direction:column; gap:12px; }
+  .budget-edit-row .input-row{
+    display:flex; gap:10px; align-items:center;
+  }
   .budget-edit-row .prefix{
     font-family:var(--font-num); font-weight:700;
     font-size:20px; color:var(--ink-soft);
@@ -698,6 +701,7 @@
   }
   #budgetInput:focus{ box-shadow:0 0 0 3px rgba(16,185,129,0.12); }
   .save-btn{
+    width:100%;
     background:var(--green-500); color:#fff;
     border:none; border-radius:var(--radius-md);
     padding:10px 20px; font-size:13px; font-weight:700;
@@ -1012,8 +1016,10 @@
         <button class="close-link" id="budgetDoneBtn">Done</button>
       </div>
       <div class="budget-edit-row">
-        <span class="prefix">RM</span>
-        <input type="number" id="budgetInput" value="3360" inputmode="decimal">
+        <div class="input-row">
+          <span class="prefix">RM</span>
+          <input type="number" id="budgetInput" value="3360" inputmode="decimal">
+        </div>
         <button class="save-btn" id="budgetSaveBtn">Save</button>
       </div>
     </div>
