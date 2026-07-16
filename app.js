@@ -1,7 +1,5 @@
 'use strict';
 
-(function () {
-
 /* ============================================================
    Our Little Nest — Family Budget Tracker
    ============================================================ */
@@ -1094,7 +1092,6 @@ function numpadTap(val) {
     checkPassword();
   }
 }
-window.numpadTap = numpadTap;
 
 function buildDots() {
   $.passcodeDots.innerHTML = '';
@@ -1162,5 +1159,3 @@ function startApp() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
-
-})();
