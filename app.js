@@ -1089,13 +1089,6 @@ function checkGatePassword() {
 
 function startApp() {
   updatePaydayCountdown();
-
-  /* Fixed header shadow on scroll */
-  const heroEl = document.querySelector('.hero-header');
-  document.addEventListener('scroll', () => {
-    heroEl.classList.toggle('scrolled', window.scrollY > 4);
-  }, { passive: true });
-
   setTimeout(hideLoadingScreen, 4000);
 
   const cached = loadCachedTransactions();
