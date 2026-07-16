@@ -188,13 +188,13 @@
     background: var(--surface);
     backdrop-filter: blur(24px) saturate(1.4);
     -webkit-backdrop-filter: blur(24px) saturate(1.4);
-    border: 1px solid rgba(255,255,255,0.5);
+    border: 1px solid var(--line);
   }
   .glass-strong {
-    background: rgba(25,30,40,0.88);
+    background: var(--surface-solid);
     backdrop-filter: blur(32px) saturate(1.6);
     -webkit-backdrop-filter: blur(32px) saturate(1.6);
-    border: 1px solid rgba(255,255,255,0.06);
+    border: 1px solid var(--line);
   }
 
   /* ===== Hero Header (sticky) ===== */
@@ -655,6 +655,7 @@
   .modal-overlay{
     position:fixed; inset:0; z-index:200;
     display:flex; align-items:center; justify-content:center;
+    padding:24px;
     background:rgba(0,0,0,0.5);
     opacity:0; visibility:hidden; pointer-events:none;
     transition:opacity .25s, visibility .25s;
