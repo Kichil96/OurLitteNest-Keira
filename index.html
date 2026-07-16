@@ -907,6 +907,7 @@
     display:grid;
     grid-template-columns:repeat(3,1fr);
     gap:10px; max-width:280px; margin:0 auto;
+    touch-action:manipulation;
   }
   .numpad-key{
     aspect-ratio:1; width:100%;
@@ -917,7 +918,6 @@
     display:flex; align-items:center; justify-content:center;
     -webkit-tap-highlight-color:transparent;
     user-select:none; -webkit-user-select:none;
-    touch-action:manipulation;
   }
   .numpad-key:active{
     background:var(--line); transform:scale(0.92);

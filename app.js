@@ -1118,7 +1118,8 @@ function buildNumpad() {
 }
 
 function setupGateKeys() {
-  $.numpad.addEventListener('pointerdown', e => {
+  $.numpad.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
+  $.numpad.addEventListener('click', e => {
     const btn = e.target.closest('.numpad-key');
     if (!btn || btn.classList.contains('empty')) return;
     const val = btn.dataset.value;
