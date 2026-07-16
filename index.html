@@ -91,6 +91,20 @@
     --font-num: 'Space Grotesk', 'Inter', monospace;
   }
 
+  [data-theme="light"] {
+    --bg: #F4F6F9;
+    --surface: rgba(255,255,255,0.85);
+    --surface-solid: #FFFFFF;
+    --ink: #1A1D24;
+    --ink-soft: #6B7280;
+    --ink-faint: #9CA3AF;
+    --line: #E5E7EB;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 24px rgba(0,0,0,0.06);
+    --shadow-lg: 0 8px 40px rgba(0,0,0,0.08);
+    --shadow-xl: 0 16px 48px rgba(0,0,0,0.1);
+  }
+
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; margin:0; padding:0; }
 
   body {
@@ -98,6 +112,7 @@
     background:var(--bg);
     color:var(--ink);
     font-family:var(--font);
+    transition:background .35s ease, color .35s ease;
     padding:
       env(safe-area-inset-top, 0px)
       env(safe-area-inset-right, 0px)
@@ -637,23 +652,33 @@
   .sheet-txn .amt{ font-family:var(--font-num); font-size:14px; font-weight:700; flex-shrink:0; }
 
   /* ===== Budget Modal ===== */
-  #budgetModal{
-    margin-bottom:14px;
+  .modal-overlay{
+    position:fixed; inset:0; z-index:200;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(0,0,0,0.5);
+    opacity:0; visibility:hidden; pointer-events:none;
+    transition:opacity .25s, visibility .25s;
+  }
+  .modal-overlay.open{ opacity:1; visibility:visible; pointer-events:auto; }
+  .modal-card{
+    width:320px; max-width:90vw;
+    padding:24px;
     border-radius:var(--radius-xl);
-    padding:20px;
-    display:none;
-    animation:scaleIn .3s cubic-bezier(.16,1,.3,1);
+    transform:scale(0.9); opacity:0;
+    transition:transform .3s cubic-bezier(.16,1,.3,1), opacity .25s ease;
   }
-  #budgetModal.open{ display:block; }
-  #budgetModal .row{
+  .modal-overlay.open .modal-card{
+    transform:scale(1); opacity:1;
+  }
+  .modal-card .row{
     display:flex; justify-content:space-between;
-    align-items:center; margin-bottom:14px;
+    align-items:center; margin-bottom:16px;
   }
-  #budgetModal label{
+  .modal-card label{
     font-size:13px; font-weight:700; color:var(--ink);
     font-family:var(--font-num);
   }
-  #budgetModal .close-link{
+  .modal-card .close-link{
     font-size:12px; font-weight:700; color:var(--green-600);
     background:none; border:none; cursor:pointer; padding:0;
     font-family:var(--font);
@@ -924,6 +949,9 @@
       <button class="nav-btn" id="refreshBtn" aria-label="Refresh data">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
       </button>
+      <button class="nav-btn" id="themeBtn" aria-label="Toggle theme">
+        <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
       <button class="nav-btn" id="budgetEditBtn" aria-label="Adjust budget">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="9" cy="6" r="1.8" fill="currentColor" stroke="none"/><circle cx="16" cy="12" r="1.8" fill="currentColor" stroke="none"/><circle cx="12" cy="18" r="1.8" fill="currentColor" stroke="none"/></svg>
       </button>
@@ -976,15 +1004,17 @@
   </div>
 
   <!-- ===== Budget Modal ===== -->
-  <div id="budgetModal" class="glass-strong">
-    <div class="row">
-      <label>Monthly Budget</label>
-      <button class="close-link" id="budgetDoneBtn">Done</button>
-    </div>
-    <div class="budget-edit-row">
-      <span class="prefix">RM</span>
-      <input type="number" id="budgetInput" value="3360" inputmode="decimal">
-      <button class="save-btn" id="budgetSaveBtn">Save</button>
+  <div id="budgetModal" class="modal-overlay">
+    <div class="modal-card glass-strong">
+      <div class="row">
+        <label>Monthly Budget</label>
+        <button class="close-link" id="budgetDoneBtn">Done</button>
+      </div>
+      <div class="budget-edit-row">
+        <span class="prefix">RM</span>
+        <input type="number" id="budgetInput" value="3360" inputmode="decimal">
+        <button class="save-btn" id="budgetSaveBtn">Save</button>
+      </div>
     </div>
   </div>
 

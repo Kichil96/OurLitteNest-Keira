@@ -67,7 +67,8 @@ function cacheDom() {
     'dbgFilterWindow','dbgInWindow','dbgDiff','budgetSaveBtn','budgetDoneBtn',
     'budgetEditBtn','sheetCloseBtn','dateWarningArea','fabBtn','qaBackdrop','qaSheet',
     'qaCloseBtn','qaAmount','qaDesc','qaCategory','qaSubmitBtn','qaFootnote',
-    'paydayCountdown','dailyAvg','exportBtn'
+    'paydayCountdown','dailyAvg','exportBtn',
+    'themeBtn','themeIcon'
   ];
   ids.forEach(id => { $[id] = document.getElementById(id); });
 }
@@ -946,8 +947,15 @@ function renderMonthlyChart(allData) {
 /* ---- Transaction Feed ---- */
 
 function renderTransactionFeed(items) {
-  const visibleItems = activeCategory ? items.filter(i => i.category === activeCategory) : items;
+  const threeDaysAgo = new Date();
+  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+  const recentItems = showAllTxns ? items : items.filter(i => i.date >= threeDaysAgo);
+  const visibleItems = activeCategory ? recentItems.filter(i => i.category === activeCategory) : recentItems;
 
+  if (!showAllTxns && items.length > 0 && recentItems.length === 0) {
+    $.transactionList.innerHTML = '<p class="empty-state">No transactions in the last 3 days.</p>';
+    return;
+  }
   if (items.length === 0) {
     $.transactionList.innerHTML = '<p class="empty-state">No transactions logged for this range.</p>';
     return;
@@ -1017,6 +1025,10 @@ function setupEvents() {
   if ($.budgetSaveBtn) $.budgetSaveBtn.addEventListener('click', updateBudget);
   if ($.budgetDoneBtn) $.budgetDoneBtn.addEventListener('click', toggleBudgetModal);
   if ($.budgetEditBtn) $.budgetEditBtn.addEventListener('click', toggleBudgetModal);
+  $.budgetModal.addEventListener('click', e => {
+    if (e.target === $.budgetModal) toggleBudgetModal();
+  });
+  if ($.themeBtn) $.themeBtn.addEventListener('click', toggleTheme);
   $.startDate.addEventListener('change', debouncedFilter);
   $.endDate.addEventListener('change', debouncedFilter);
   document.addEventListener('keydown', e => {
@@ -1060,8 +1072,33 @@ function hideLoadingScreen() {
   }
 }
 
+/* ---- Theme ---- */
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  const icon = document.getElementById('themeIcon');
+  if (icon) {
+    icon.innerHTML = theme === 'dark'
+      ? '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'
+      : '<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke-linecap="round"/>';
+  }
+  localStorage.setItem('ournest_theme', theme);
+}
+
+function initTheme() {
+  const saved = localStorage.getItem('ournest_theme');
+  if (saved) { applyTheme(saved); return; }
+  const h = new Date().getHours();
+  applyTheme(h >= 6 && h < 18 ? 'light' : 'dark');
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  applyTheme(current === 'dark' ? 'light' : 'dark');
+}
+
 function init() {
   cacheDom();
+  initTheme();
   loadBudget();
   loadLocalTransactions();
 
