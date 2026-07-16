@@ -56,7 +56,7 @@ const $ = {};
 
 function cacheDom() {
   const ids = [
-    'passwordGate','passcodeDots','numpad','gateError',
+    'passwordGate','gateInput','gateBtn','gateError',
     'refreshBtn','syncRow','syncLabel','debugToggleBtn','debugPanel','budgetModal',
     'budgetInput','startDate','endDate','statusBadge','statusLabel','statusValueCard',
     'statusSub','gaugeFill','totalSpentCard','txnCount','catCount','topCategoryLabel',
@@ -1066,62 +1066,28 @@ function init() {
   /* ---- Password Gate (3-day TTL) ---- */
   const unlockedAt = localStorage.getItem('ournest_unlocked_at');
   if (!unlockedAt || Date.now() - Number(unlockedAt) > GATE_TTL_DAYS * 86400000) {
-    buildDots();
-    updateDots();
+    $.gateBtn.addEventListener('click', checkGatePassword);
+    $.gateInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') checkGatePassword();
+    });
+    $.gateInput.focus();
     return;
   }
   $.passwordGate.classList.add('hidden');
   startApp();
 }
 
-let passcodeInput = '';
-const PASS_LEN = APP_PASSWORDS[0].length;
-
-function numpadTap(val) {
-  if (val === 'delete') {
-    passcodeInput = passcodeInput.slice(0, -1);
-    $.gateError.classList.remove('show');
-    updateDots();
-    return;
-  }
-  if (passcodeInput.length >= PASS_LEN) return;
-  passcodeInput += val;
-  $.gateError.classList.remove('show');
-  updateDots();
-  if (passcodeInput.length === PASS_LEN) {
-    checkPassword();
-  }
-}
-
-function buildDots() {
-  $.passcodeDots.innerHTML = '';
-  for (let i = 0; i < PASS_LEN; i++) {
-    const dot = document.createElement('div');
-    dot.className = 'passcode-dot';
-    dot.dataset.idx = i;
-    $.passcodeDots.appendChild(dot);
-  }
-}
-
-function updateDots() {
-  const dots = $.passcodeDots.querySelectorAll('.passcode-dot');
-  dots.forEach((dot, i) => {
-    dot.classList.toggle('filled', i < passcodeInput.length);
-  });
-}
-
-function checkPassword() {
-  if (APP_PASSWORDS.includes(passcodeInput)) {
+function checkGatePassword() {
+  const val = $.gateInput.value.trim();
+  if (APP_PASSWORDS.includes(val)) {
     localStorage.setItem('ournest_unlocked_at', String(Date.now()));
+    $.gateError.classList.remove('show');
     $.passwordGate.classList.add('hidden');
     startApp();
   } else {
     $.gateError.classList.add('show');
-    const dots = $.passcodeDots.querySelectorAll('.passcode-dot');
-    dots.forEach(d => d.classList.add('shake'));
-    setTimeout(() => dots.forEach(d => d.classList.remove('shake')), 400);
-    passcodeInput = '';
-    updateDots();
+    $.gateInput.value = '';
+    $.gateInput.focus();
   }
 }
 

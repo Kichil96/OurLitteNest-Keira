@@ -876,58 +876,29 @@
     font-size:22px; font-weight:700; color:var(--ink); margin:0 0 2px;
   }
   .gate-sub{
-    font-size:13px; color:var(--ink-faint); margin:0 0 28px; line-height:1.4;
+    font-size:13px; color:var(--ink-faint); margin:0 0 20px; line-height:1.4;
   }
-  .passcode-dots{
-    display:flex; justify-content:center; gap:12px; margin-bottom:28px; min-height:18px;
+  .gate-input{
+    width:100%; box-sizing:border-box;
+    padding:14px 16px; border:1.5px solid var(--line);
+    border-radius:14px; font-size:18px; text-align:center;
+    background:var(--surface); color:var(--ink);
+    outline:none; font-family:var(--font-num);
+    letter-spacing:6px; transition:border-color .2s;
   }
-  .passcode-dot{
-    width:14px; height:14px; border-radius:50%;
-    border:2px solid var(--ink-faint); background:transparent;
-    transition:background .15s, border-color .15s;
-  }
-  .passcode-dot.filled{
-    background:var(--green-500); border-color:var(--green-500);
-  }
-  .passcode-dot.shake{
-    animation:shake .3s ease-in-out;
-  }
-  @keyframes shake{
-    0%,100%{ transform:translateX(0); }
-    25%{ transform:translateX(-8px); }
-    50%{ transform:translateX(8px); }
-    75%{ transform:translateX(-4px); }
-  }
+  .gate-input:focus{ border-color:var(--green-500); }
   .gate-error{
-    font-size:13px; color:#DC2626; margin:-20px 0 18px; display:none; font-weight:500;
+    font-size:12px; color:var(--burst); margin:10px 0 0; display:none; font-weight:600;
   }
   .gate-error.show{ display:block; }
-  .gate-error.dark{ color:#F87171; }
-  .numpad{
-    display:grid;
-    grid-template-columns:repeat(3,1fr);
-    gap:10px; max-width:280px; margin:0 auto;
-    touch-action:manipulation;
+  .gate-btn{
+    width:100%; margin-top:16px;
+    padding:14px; border:none; border-radius:14px;
+    background:linear-gradient(135deg, var(--green-400), var(--green-500)); color:#fff;
+    font-size:16px; font-weight:700; cursor:pointer;
+    font-family:var(--font); transition:opacity .2s;
   }
-  .numpad-key{
-    aspect-ratio:1; width:100%;
-    border:none; border-radius:50%;
-    background:var(--surface); color:var(--ink);
-    font-size:24px; font-weight:500; font-family:var(--font);
-    cursor:pointer; transition:background .15s, transform .1s;
-    display:flex; align-items:center; justify-content:center;
-    -webkit-tap-highlight-color:transparent;
-    user-select:none; -webkit-user-select:none;
-  }
-  .numpad-key:active{
-    background:var(--line); transform:scale(0.92);
-  }
-  .numpad-key.empty{ background:transparent; cursor:default; pointer-events:none; }
-  .numpad-key svg{
-    width:28px; height:28px; color:var(--ink);
-  }
-  .numpad-key.delete:active{ background:var(--line); }
-
+  .gate-btn:active{ opacity:.8; }
 </style>
 </head>
 <body>
@@ -1185,24 +1156,9 @@
     </div>
     <h2 class="gate-title">Our Little Nest</h2>
     <p class="gate-sub">Enter passcode</p>
-    <div class="passcode-dots" id="passcodeDots"></div>
+    <input type="password" id="gateInput" class="gate-input" placeholder="Passcode" inputmode="numeric" autocomplete="off" maxlength="4">
     <p class="gate-error" id="gateError">Incorrect passcode</p>
-    <div class="numpad" id="numpad">
-      <button type="button" class="numpad-key" onclick="numpadTap('1')">1</button>
-      <button type="button" class="numpad-key" onclick="numpadTap('2')">2</button>
-      <button type="button" class="numpad-key" onclick="numpadTap('3')">3</button>
-      <button type="button" class="numpad-key" onclick="numpadTap('4')">4</button>
-      <button type="button" class="numpad-key" onclick="numpadTap('5')">5</button>
-      <button type="button" class="numpad-key" onclick="numpadTap('6')">6</button>
-      <button type="button" class="numpad-key" onclick="numpadTap('7')">7</button>
-      <button type="button" class="numpad-key" onclick="numpadTap('8')">8</button>
-      <button type="button" class="numpad-key" onclick="numpadTap('9')">9</button>
-      <div class="numpad-key empty"></div>
-      <button type="button" class="numpad-key" onclick="numpadTap('0')">0</button>
-      <button type="button" class="numpad-key delete" onclick="numpadTap('delete')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
-      </button>
-    </div>
+    <button id="gateBtn" class="gate-btn">Unlock</button>
   </div>
 </div>
 
