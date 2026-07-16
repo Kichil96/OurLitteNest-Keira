@@ -1156,9 +1156,23 @@
     </div>
     <h2 class="gate-title">Our Little Nest</h2>
     <p class="gate-sub">Enter passcode</p>
-    <input type="password" id="gateInput" class="gate-input" placeholder="Passcode" inputmode="numeric" autocomplete="off" maxlength="4">
+    <input type="password" id="gateInput" class="gate-input" placeholder="Passcode" inputmode="numeric" autocomplete="off" maxlength="4" autofocus onkeydown="if(event.key==='Enter')gateUnlock()">
     <p class="gate-error" id="gateError">Incorrect passcode</p>
-    <button id="gateBtn" class="gate-btn">Unlock</button>
+    <button class="gate-btn" onclick="gateUnlock()">Unlock</button>
+    <script>
+    function gateUnlock(){
+      var v=document.getElementById('gateInput').value.trim();
+      if(v==='5527'||v==='5448'){
+        localStorage.setItem('ournest_unlocked_at',String(Date.now()));
+        document.getElementById('passwordGate').classList.add('hidden');
+        if(typeof init==='function')init();
+      } else {
+        document.getElementById('gateError').classList.add('show');
+        document.getElementById('gateInput').value='';
+        document.getElementById('gateInput').focus();
+      }
+    }
+    </script>
   </div>
 </div>
 

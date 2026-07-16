@@ -541,6 +541,8 @@ function getCycleDates() {
     prevEnd: new Date(y, m, 24)
   };
 }
+
+function updatePaydayCountdown() {
   const now = new Date();
   let payday = new Date(now.getFullYear(), now.getMonth(), 25);
   if (now.getDate() >= 25) payday.setMonth(payday.getMonth() + 1);
@@ -1063,16 +1065,10 @@ function init() {
   loadBudget();
   loadLocalTransactions();
 
-  /* ---- Password Gate (3-day TTL) ---- */
   const unlockedAt = localStorage.getItem('ournest_unlocked_at');
-  if (!unlockedAt || Date.now() - Number(unlockedAt) > GATE_TTL_DAYS * 86400000) {
-    $.gateBtn.addEventListener('click', checkGatePassword);
-    $.gateInput.addEventListener('keydown', e => {
-      if (e.key === 'Enter') checkGatePassword();
-    });
-    $.gateInput.focus();
+  if (!unlockedAt || Date.now() - Number(unlockedAt) > GATE_TTL_DAYS * 86400000)
     return;
-  }
+
   $.passwordGate.classList.add('hidden');
   startApp();
 }
