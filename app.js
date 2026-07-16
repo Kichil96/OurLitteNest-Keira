@@ -56,7 +56,7 @@ const $ = {};
 
 function cacheDom() {
   const ids = [
-    'passwordGate','gateInput','gateBtn','gateError',
+    'passwordGate','gateInput','gateError',
     'refreshBtn','syncRow','syncLabel','debugToggleBtn','debugPanel','budgetModal',
     'budgetInput','startDate','endDate','statusBadge','statusLabel','statusValueCard',
     'statusSub','gaugeFill','totalSpentCard','txnCount','catCount','topCategoryLabel',
@@ -1089,6 +1089,13 @@ function checkGatePassword() {
 
 function startApp() {
   updatePaydayCountdown();
+
+  /* Fixed header shadow on scroll */
+  const heroEl = document.querySelector('.hero-header');
+  document.addEventListener('scroll', () => {
+    heroEl.classList.toggle('scrolled', window.scrollY > 4);
+  }, { passive: true });
+
   setTimeout(hideLoadingScreen, 4000);
 
   const cached = loadCachedTransactions();
