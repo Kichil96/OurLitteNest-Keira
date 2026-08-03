@@ -895,17 +895,30 @@ function renderCategoryList(categoryData, totalSpent, prevData) {
 
 /* ---- Monthly Chart ---- */
 
+function payPeriodStartFor(d) {
+  let y = d.getFullYear();
+  let m = d.getMonth();
+  if (d.getDate() < 25) { m -= 1; if (m < 0) { m = 11; y -= 1; } }
+  return new Date(y, m, 25);
+}
+
 function renderMonthlyChart(allData) {
   const ctx = $.monthlyChart.getContext('2d');
 
-  const monthlyTotals = {};
+  const periodTotals = {};
   allData.forEach(t => {
-    const monthLabel = t.date.toLocaleString('default', { month: 'short', year: '2-digit' });
-    monthlyTotals[monthLabel] = (monthlyTotals[monthLabel] || 0) + t.amount;
+    const start = payPeriodStartFor(t.date).getTime();
+    periodTotals[start] = (periodTotals[start] || 0) + t.amount;
   });
 
-  const labels = Object.keys(monthlyTotals).reverse().slice(-6);
-  const dataValues = labels.map(lbl => monthlyTotals[lbl]);
+  const periodStarts = Object.keys(periodTotals)
+    .map(Number)
+    .sort((a, b) => a - b)
+    .slice(-6);
+  const labels = periodStarts.map(ts =>
+    new Date(ts).toLocaleString('default', { month: 'short', year: '2-digit' })
+  );
+  const dataValues = periodStarts.map(ts => periodTotals[ts]);
 
   if (monthlyChartInst) monthlyChartInst.destroy();
 
@@ -921,6 +934,15 @@ function renderMonthlyChart(allData) {
           backgroundColor: labels.map((_, i) => gradientColors[i % gradientColors.length]),
           borderRadius: 8,
           barThickness: 22
+        }, {
+          type: 'line',
+          data: labels.map(() => currentBudget),
+          borderColor: '#E11D48',
+          borderDash: [6, 6],
+          borderWidth: 1.5,
+          pointRadius: 0,
+          fill: false,
+          tension: 0
         }]
       },
       options: {
