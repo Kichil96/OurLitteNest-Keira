@@ -372,7 +372,7 @@ async function addMoney(kind) {
 
 async function pushToSheet(bank, pot, signedAmount, note) {
   try {
-    await fetch(APPS_SCRIPT_URL, {
+    const res = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
       redirect: 'follow',
       body: JSON.stringify({
@@ -384,9 +384,19 @@ async function pushToSheet(bank, pot, signedAmount, note) {
         note
       })
     });
-    setSyncLabel('Synced to Google Sheet ✓', true);
-  } catch (_) {
+    const text = await res.text();
+    let result = null;
+    try { result = JSON.parse(text); } catch (_) { result = null; }
+    if (res.ok && result && result.ok) {
+      setSyncLabel('Synced to Google Sheet ✓', true);
+    } else {
+      const err = (result && result.error) || ('HTTP ' + res.status);
+      setSyncLabel('⚠ ' + err, false);
+      console.error('Savings sync failed:', err);
+    }
+  } catch (err) {
     setSyncLabel('Saved locally (offline) ✓', true);
+    console.error('Savings sync offline:', err);
   }
 }
 

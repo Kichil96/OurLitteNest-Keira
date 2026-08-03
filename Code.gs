@@ -8,9 +8,17 @@
 const SHEET_NAME = 'Database'; // <-- changed to match your tab name
 const SAVINGS_SHEET_NAME = 'Savings'; // <-- savings tab name
 
-function doGet() {
+function doGet(e) {
+  const out = { ok: true, status: 'alive' };
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    out.sheets = ss.getSheets().map(s => s.getName());
+  } catch (err) {
+    out.sheets = [];
+    out.error = err.message;
+  }
   return ContentService
-    .createTextOutput(JSON.stringify({ ok: true, status: 'alive' }))
+    .createTextOutput(JSON.stringify(out))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
