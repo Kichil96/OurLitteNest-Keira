@@ -84,6 +84,7 @@ function formatSyncTime(d) {
 
 function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
+
 function getCategorySums(data) {
   const sums = {};
   data.forEach(t => { sums[t.category] = (sums[t.category] || 0) + t.amount; });
@@ -456,6 +457,19 @@ function getFilteredData() {
   return mergeLocalData(filtered);
 }
 
+function getAllTransactions() {
+  if (localTransactions.length === 0) return rawTransactions;
+  const csvHashes = new Set(rawTransactions.map(t =>
+    `${t.amount}|${t.description}|${t.category}`
+  ));
+  const locals = localTransactions.filter(t =>
+    !csvHashes.has(`${t.amount}|${t.description}|${t.category}`)
+  );
+  return rawTransactions.concat(locals)
+    .slice()
+    .sort((a, b) => b.date - a.date);
+}
+
 /* ---- Skeleton loading ---- */
 const SKELETON_IDS = ['statusValueCard','statusSub','totalSpentCard','txnCount','legendGrid','categoryList','transactionList'];
 
@@ -525,7 +539,7 @@ function updateDashboard(data) {
   renderDonut(categorySums, totalSpent);
   renderLegend(categorySums, totalSpent);
   renderCategoryList(categorySums, totalSpent, prevCatSums);
-  renderMonthlyChart(data);
+  renderMonthlyChart(getAllTransactions());
   renderTransactionFeed(data);
   updatePaydayCountdown();
 }
