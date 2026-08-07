@@ -32,7 +32,7 @@ function doPost(e) {
     const description = String(data.description || 'Manual entry');
     const category = String(data.category || 'Other');
 
-    if (!amount || amount <= 0) {
+    if (isNaN(amount) || amount === 0) {
       throw new Error('Invalid amount');
     }
 
@@ -49,6 +49,21 @@ function doPost(e) {
 }
 
 function handleSavingsPost(data) {
+  if (data.type === 'transfer') {
+    const from = String(data.from || 'main');
+    const to = String(data.to || 'main');
+    const amount = parseFloat(data.amount);
+    const note = String(data.note || 'Transfer');
+
+    if (isNaN(amount) || amount <= 0) throw new Error('Invalid transfer amount');
+
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SAVINGS_SHEET_NAME);
+    if (!sheet) throw new Error('Sheet "' + SAVINGS_SHEET_NAME + '" not found');
+
+    sheet.appendRow(['TRANSFER', from, to, new Date(), amount, note]);
+    return respond({ ok: true, type: 'transfer', from, to, amount, note });
+  }
+
   const bank = String(data.bank || '');
   const potId = String(data.potId || '');
   const potName = String(data.potName || '');

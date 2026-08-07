@@ -43,6 +43,8 @@ let showAllTxns = false;
 let _hasRendered = false;
 let localTransactions = [];
 let qaOpen = false;
+let qaType = 'expense';
+let transferOpen = false;
 
 /* ---- Apps Script Config ---- */
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzE2ELVEpqzz4UK7TbB6eycU_IjsxDLD1fWHC3MhlR2p_SGDHJrFLcjJbzBKpcNJzWXcg/exec';
@@ -68,7 +70,11 @@ function cacheDom() {
     'budgetEditBtn','sheetCloseBtn','dateWarningArea','fabBtn','qaBackdrop','qaSheet',
     'qaCloseBtn','qaAmount','qaDesc','qaCategory','qaSubmitBtn','qaFootnote',
     'paydayCountdown','dailyAvg','exportBtn',
-    'themeBtn','themeIcon'
+    'themeBtn','themeIcon',
+    'changeChip','changeChipVal','qaIncomeBtn','qaExpenseBtn','transferBtn',
+    'transferBackdrop','transferSheet','transferCloseBtn','transferSwapBtn',
+    'transferFrom','transferTo','transferAmount','transferNote','transferSubmitBtn',
+    'transferFootnote','topGoalCard','topGoalBody','insightText','dockExport'
   ];
   ids.forEach(id => { $[id] = document.getElementById(id); });
 }
@@ -87,12 +93,20 @@ function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
 function getCategorySums(data) {
   const sums = {};
-  data.forEach(t => { sums[t.category] = (sums[t.category] || 0) + t.amount; });
+  data.forEach(t => { if (t.amount > 0) sums[t.category] = (sums[t.category] || 0) + t.amount; });
   return sums;
 }
 
 function getTotalSpent(data) {
   return data.reduce((s, t) => s + t.amount, 0);
+}
+
+function getExpense(data) {
+  return data.reduce((s, t) => s + (t.amount > 0 ? t.amount : 0), 0);
+}
+
+function getIncome(data) {
+  return data.reduce((s, t) => s + (t.amount < 0 ? -t.amount : 0), 0);
 }
 
 function sortedCategories(sums) {
@@ -441,6 +455,7 @@ function filterData() {
   });
   const merged = mergeLocalData(filtered);
   updateDashboard(merged);
+  renderTopGoal();
   if (debugPanelOpen) renderDebugPanel();
 }
 
@@ -494,27 +509,28 @@ function updateDashboard(data) {
   hideSkeleton();
   showAllTxns = false;
   $.transactionList.classList.remove('expanded');
-  const totalSpent = getTotalSpent(data);
-  const categorySums = getCategorySums(data);
+  const expense = getExpense(data);
+  const income = getIncome(data);
+  const net = expense - income;
 
-  $.totalSpentCard.innerText = fmtMoney(totalSpent);
+  $.totalSpentCard.innerText = fmtMoney(expense);
   $.txnCount.innerText = data.length;
 
-  const pctUsed = currentBudget > 0 ? Math.min((totalSpent / currentBudget) * 100, 100) : 0;
+  const pctUsed = currentBudget > 0 ? Math.min((expense / currentBudget) * 100, 100) : 0;
   $.gaugeFill.style.width = pctUsed + '%';
 
-  if (totalSpent > currentBudget) {
-    $.statusLabel.innerText = 'Budget Status';
+  if (expense > currentBudget) {
+    $.statusLabel.innerText = 'Total Balance';
     $.statusValueCard.innerText = '⚠ Budget Burst';
     $.statusValueCard.classList.add('burst');
     $.statusValueCard.classList.remove('safe');
     $.gaugeFill.classList.add('burst');
     $.statusBadge.innerText = 'Over budget';
     $.statusBadge.classList.add('burst');
-    $.statusSub.innerText = `${fmtMoney(totalSpent - currentBudget)} over the ${fmtMoney(currentBudget)} budget`;
+    $.statusSub.innerText = `${fmtMoney(expense - currentBudget)} over the ${fmtMoney(currentBudget)} budget`;
   } else {
-    $.statusLabel.innerText = 'Remaining Balance';
-    const remainder = currentBudget - totalSpent;
+    $.statusLabel.innerText = 'Total Balance';
+    const remainder = currentBudget - net;
     $.statusValueCard.innerText = fmtMoney(remainder);
     $.statusValueCard.classList.add('safe');
     $.statusValueCard.classList.remove('burst');
@@ -528,7 +544,7 @@ function updateDashboard(data) {
   const cycle = getCycleDates();
   const totalDays = Math.round((cycle.end - cycle.start) / 86400000) + 1;
   const daysElapsed = Math.max(1, Math.round((new Date() - cycle.start) / 86400000) + 1);
-  const avgDay = totalSpent / daysElapsed;
+  const avgDay = expense / daysElapsed;
   const budgetDay = currentBudget / totalDays;
   $.dailyAvg.innerHTML = `<span>RM ${avgDay.toFixed(2)}</span>/day spent · <span>RM ${budgetDay.toFixed(2)}</span>/day budgeted`;
 
@@ -536,12 +552,14 @@ function updateDashboard(data) {
   const prevData = rawTransactions.filter(t => t.date >= cycle.prevStart && t.date <= cycle.prevEnd);
   const prevCatSums = getCategorySums(mergeLocalData(prevData));
 
-  renderDonut(categorySums, totalSpent);
-  renderLegend(categorySums, totalSpent);
-  renderCategoryList(categorySums, totalSpent, prevCatSums);
+  renderDonut(getCategorySums(data), expense);
+  renderLegend(getCategorySums(data), expense);
+  renderCategoryList(getCategorySums(data), expense, prevCatSums);
   renderMonthlyChart(getAllTransactions());
   renderTransactionFeed(data);
   updatePaydayCountdown();
+  renderChangeChip(expense);
+  renderSmartInsight(expense, prevCatSums);
 }
 
 function getCycleDates() {
@@ -565,6 +583,87 @@ function updatePaydayCountdown() {
   $.paydayCountdown.innerHTML = diff === 0
     ? 'Payday today <span>🎉</span>'
     : `<span>${diff}</span> day${diff === 1 ? '' : 's'} until next payday`;
+}
+
+function renderChangeChip(expense) {
+  if (!$.changeChip || !$.changeChipVal) return;
+  const cycle = getCycleDates();
+  const prevData = mergeLocalData(rawTransactions.filter(t => t.date >= cycle.prevStart && t.date <= cycle.prevEnd));
+  const prevExpense = getExpense(prevData);
+  $.changeChip.hidden = false;
+  if (!prevExpense) {
+    $.changeChipVal.innerText = 'New cycle';
+    $.changeChip.classList.remove('down', 'up');
+    return;
+  }
+  const pct = ((expense - prevExpense) / prevExpense) * 100;
+  $.changeChipVal.innerText = `${Math.abs(pct).toFixed(1)}% ${pct >= 0 ? 'higher' : 'lower'} than last cycle`;
+  $.changeChip.classList.toggle('down', pct > 0);
+  $.changeChip.classList.toggle('up', pct <= 0);
+}
+
+function renderSmartInsight(expense, prevCatSums) {
+  if (!$.insightText) return;
+  const categoryData = getCategorySums(mergeLocalData(rawTransactions.filter(t => t.date >= getCycleDates().start)));
+  const entries = Object.entries(categoryData).sort((a, b) => b[1] - a[1]);
+  const budget = currentBudget;
+
+  let insight;
+  if (entries.length === 0) {
+    insight = 'No spending yet this cycle. Add your first expense to start tracking.';
+  } else if (expense > budget) {
+    insight = `You are RM ${fmtMoney(expense - budget)} over budget. Ease off non-essential spending to recover by payday.`;
+  } else {
+    const top = entries[0];
+    const pct = Math.round((top[1] / budget) * 100);
+    const prevTop = Object.entries(prevCatSums).sort((a, b) => b[1] - a[1])[0];
+    if (prevTop && prevTop[0] === top[0]) {
+      const diff = top[1] - prevTop[1];
+      insight = diff > 0
+        ? `${top[0]} is still your top spend (RM ${fmtMoney(top[1])}). That is RM ${fmtMoney(diff)} above last cycle.`
+        : `${top[0]} stays your top spend, down RM ${fmtMoney(-diff)} from last cycle. Nice.`;
+    } else {
+      insight = `${top[0]} is your biggest spend this cycle at ${pct}% of budget. Consider trimming it to stay on track.`;
+    }
+  }
+  $.insightText.innerHTML = insight;
+}
+
+function renderTopGoal() {
+  if (!$.topGoalCard || !$.topGoalBody) return;
+  let pots = [];
+  try {
+    const banks = JSON.parse(localStorage.getItem('ournest_savings_banks') || '[]');
+    const rawPots = JSON.parse(localStorage.getItem('ournest_savings_pots') || '[]');
+    pots = rawPots.map(p => {
+      const bank = banks.find(b => b.id === p.bank) || {};
+      return { id: p.id, name: p.name, target: p.target || 0, saved: p.saved || 0, bank: bank.name || 'Savings' };
+    });
+  } catch (e) { /* ignore */ }
+
+  const progress = pots.filter(p => p.target > 0 && p.saved >= p.target);
+  const inProgress = pots.filter(p => p.target > 0 && p.saved < p.target).sort((a, b) => (b.saved / b.target) - (a.saved / a.target));
+  const goal = progress.length ? progress[0] : inProgress[0];
+  if (!goal) {
+    $.topGoalBody.innerHTML = '<p class="top-goal-empty">Set a savings goal in the Savings tab to track it here.</p>';
+    return;
+  }
+  const pct = Math.min(Math.round((goal.saved / goal.target) * 100), 100);
+  const totalGoals = pots.filter(p => p.target > 0).length;
+  $.topGoalBody.innerHTML = `
+    <div class="top-goal-head">
+      <span class="top-goal-name">${esc(goal.name)}</span>
+      <span class="top-goal-meta">${progress.length} of ${totalGoals} done</span>
+    </div>
+    <div class="top-goal-progress"><div class="top-goal-fill" style="width:${pct}%"></div></div>
+    <div class="top-goal-foot">
+      <span>${fmtMoney(goal.saved)}</span>
+      <span>of ${fmtMoney(goal.target)} in ${esc(goal.bank)}</span>
+    </div>`;
+}
+
+function esc(str) {
+  return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
 function exportCSV() {
@@ -725,6 +824,8 @@ function closeSheet() {
 
 function openQuickAdd() {
   qaOpen = true;
+  qaType = 'expense';
+  updateQaTypeUI();
   $.qaAmount.value = '';
   $.qaDesc.value = '';
   $.qaCategory.value = '';
@@ -738,6 +839,23 @@ function openQuickAdd() {
   setTimeout(() => $.qaAmount.focus(), 400);
 }
 
+function setQaType(type) {
+  qaType = type === 'income' ? 'income' : 'expense';
+  updateQaTypeUI();
+}
+
+function updateQaTypeUI() {
+  if (!$.qaIncomeBtn || !$.qaExpenseBtn) return;
+  $.qaIncomeBtn.classList.toggle('active', qaType === 'income');
+  $.qaExpenseBtn.classList.toggle('active', qaType === 'expense');
+  document.querySelectorAll('.qa-type-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.type === qaType);
+  });
+  const title = $.qaSheet.querySelector('#qaTitle');
+  if (title) title.innerText = qaType === 'income' ? 'Add Income' : 'Add Expense';
+  if ($.qaSubmitBtn) $.qaSubmitBtn.innerText = qaType === 'income' ? 'Add Income' : 'Add Transaction';
+}
+
 function closeQuickAdd() {
   qaOpen = false;
   document.body.style.overflow = '';
@@ -745,12 +863,106 @@ function closeQuickAdd() {
   $.qaSheet.classList.remove('open');
 }
 
+/* ---- Transfer ---- */
+
+function getSavingsTargets() {
+  const banks = [];
+  const pots = [];
+  try { banks.push(...(JSON.parse(localStorage.getItem('ournest_savings_banks') || '[]'))); } catch (_) {}
+  try { pots.push(...(JSON.parse(localStorage.getItem('ournest_savings_pots') || '[]'))); } catch (_) {}
+  const potOptions = pots.map(p => {
+    const bank = banks.find(b => b.id === p.bank) || {};
+    return { id: p.id, label: `${p.name} (${bank.name || 'Savings'})`, saved: p.saved || 0 };
+  });
+  return { banks, pots, potOptions };
+}
+
+function openTransferSheet() {
+  transferOpen = true;
+  const { potOptions } = getSavingsTargets();
+  const opts = potOptions.map(o => `<option value="${esc(o.id)}">${esc(o.label)}</option>`).join('');
+  $.transferFrom.innerHTML = `<option value="main">Everyday account (main)</option>${opts}`;
+  $.transferTo.innerHTML = opts;
+  $.transferAmount.value = '';
+  $.transferNote.value = '';
+  $.transferFootnote.innerText = 'Moves money between pots \u2022 updates Savings balance';
+  $.transferFootnote.style.color = '';
+  document.body.style.overflow = 'hidden';
+  $.transferBackdrop.classList.add('open');
+  $.transferSheet.classList.add('open');
+}
+
+function closeTransferSheet() {
+  transferOpen = false;
+  document.body.style.overflow = '';
+  $.transferBackdrop.classList.remove('open');
+  $.transferSheet.classList.remove('open');
+}
+
+function swapTransferTargets() {
+  const from = $.transferFrom.value;
+  const to = $.transferTo.value;
+  if (from !== 'main' && to !== 'main') return;
+  $.transferFrom.value = to;
+  $.transferTo.value = from;
+}
+
+async function submitTransfer() {
+  const from = $.transferFrom.value;
+  const to = $.transferTo.value;
+  const raw = parseFloat($.transferAmount.value);
+  if (!raw || raw <= 0) { $.transferFootnote.innerText = 'Enter an amount greater than 0.'; $.transferFootnote.style.color = 'var(--burst)'; return; }
+  if (from === to) { $.transferFootnote.innerText = 'Choose two different pots.'; $.transferFootnote.style.color = 'var(--burst)'; return; }
+
+  const { banks, pots } = getSavingsTargets();
+  const fromPot = pots.find(p => p.id === from);
+  const toPot = pots.find(p => p.id === to);
+
+  if (from !== 'main' && fromPot && raw > fromPot.saved) {
+    $.transferFootnote.innerText = `Not enough in ${fromPot.name}. Available: RM ${fromPot.saved.toFixed(2)}.`;
+    $.transferFootnote.style.color = 'var(--burst)';
+    return;
+  }
+
+  $.transferSubmitBtn.disabled = true;
+  $.transferSubmitBtn.innerText = 'Moving\u2026';
+
+  const ts = Date.now();
+  const entry = { ts, from, to, amount: raw, note: $.transferNote.value.trim() || 'Transfer', fromName: fromPot ? fromPot.name : 'main', toName: toPot ? toPot.name : 'main' };
+
+  let entries = [];
+  try { entries = JSON.parse(localStorage.getItem('ournest_savings_entries') || '[]'); } catch (_) {}
+  entries.push(entry);
+  try { localStorage.setItem('ournest_savings_entries', JSON.stringify(entries)); } catch (_) {}
+
+  if (from === 'main') { toPot.saved = (toPot.saved || 0) + raw; }
+  else if (to === 'main') { fromPot.saved = (fromPot.saved || 0) - raw; }
+  else { toPot.saved = (toPot.saved || 0) + raw; fromPot.saved = (fromPot.saved || 0) - raw; }
+  try { localStorage.setItem('ournest_savings_pots', JSON.stringify(pots)); } catch (_) {}
+
+  try {
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST', redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'savings', type: 'transfer', ts, from, to, amount: raw, note: entry.note })
+    });
+    $.transferFootnote.innerText = res.ok ? 'Transfer done \u2713' : 'Saved locally (server error)';
+    $.transferFootnote.style.color = res.ok ? 'var(--safe)' : 'var(--burst)';
+  } catch (_) {
+    $.transferFootnote.innerText = 'Saved locally (offline) \u2713';
+    $.transferFootnote.style.color = 'var(--safe)';
+  }
+
+  setTimeout(() => { $.transferSubmitBtn.disabled = false; closeTransferSheet(); }, 700);
+}
+
 async function submitTransaction() {
-  const amount = parseFloat($.qaAmount.value);
+  const raw = parseFloat($.qaAmount.value);
   const desc = $.qaDesc.value.trim() || 'Manual entry';
   const category = $.qaCategory.value.trim();
+  const signed = qaType === 'income' ? -Math.abs(raw) : Math.abs(raw);
 
-  if (!amount || amount <= 0) {
+  if (!raw || raw <= 0) {
     $.qaAmount.focus();
     $.qaAmount.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.2)';
     setTimeout(() => { $.qaAmount.style.boxShadow = ''; }, 1500);
@@ -769,7 +981,7 @@ async function submitTransaction() {
   const now = new Date();
   const localEntry = {
     date: now,
-    amount,
+    amount: signed,
     description: desc,
     category,
     _local: true,
@@ -784,7 +996,7 @@ async function submitTransaction() {
       method: 'POST',
       redirect: 'follow',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ amount, description: desc, category })
+      body: JSON.stringify({ amount: signed, description: desc, category })
     });
 
     if (!res.ok) {
@@ -1012,14 +1224,15 @@ function renderTransactionFeed(items) {
     const catIdx = sortedCats.indexOf(item.category);
     const c = colorFor(catIdx >= 0 ? catIdx : 0);
     const isLocal = item._local;
+    const isIncome = item.amount < 0;
     return `
       <div class="txn${dimmed ? ' dimmed' : ''}">
         <div class="left">
-          <div class="cat-dot" style="background:${isLocal ? 'rgba(16,185,129,0.10)' : c + '22'}">${isLocal ? '📝' : iconFor(item.category)}</div>
+          <div class="cat-dot" style="background:${isIncome ? 'rgba(110,231,183,0.12)' : isLocal ? 'rgba(16,185,129,0.10)' : c + '22'}">${isIncome ? '↓' : isLocal ? '📝' : iconFor(item.category)}</div>
           <div class="info">
             <span class="desc">${escHtml(item.description)}${isLocal ? ' <span class="local-badge">Local</span>' : ''}</span>
             <div class="meta">
-              <span class="pill" style="${isLocal ? 'background:rgba(16,185,129,0.08);color:var(--green-600)' : ''}">${escHtml(item.category)}</span>
+              <span class="pill" style="${isIncome ? 'background:rgba(110,231,183,0.10);color:var(--safe)' : isLocal ? 'background:rgba(16,185,129,0.08);color:var(--green-600)' : ''}">${escHtml(item.category)}</span>
               <span class="date">
                 <time datetime="${item.date.toISOString().slice(0, 10)}">
                   ${item.date.toLocaleDateString('en-MY', { day: 'numeric', month: 'short' })}
@@ -1028,7 +1241,7 @@ function renderTransactionFeed(items) {
             </div>
           </div>
         </div>
-        <span class="amt nums">${fmtMoney(item.amount)}</span>
+        <span class="amt nums ${isIncome ? 'income' : ''}">${isIncome ? '+' + fmtMoney(-item.amount) : fmtMoney(item.amount)}</span>
       </div>`;
   }).join('');
 
@@ -1068,13 +1281,24 @@ function setupEvents() {
   $.startDate.addEventListener('change', debouncedFilter);
   $.endDate.addEventListener('change', debouncedFilter);
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { closeSheet(); closeQuickAdd(); }
+    if (e.key === 'Escape') { closeSheet(); closeQuickAdd(); closeTransferSheet(); }
   });
 
   $.fabBtn.addEventListener('click', openQuickAdd);
+  if ($.qaIncomeBtn) $.qaIncomeBtn.addEventListener('click', () => { openQuickAdd(); setQaType('income'); });
+  if ($.qaExpenseBtn) $.qaExpenseBtn.addEventListener('click', openQuickAdd);
   $.qaBackdrop.addEventListener('click', closeQuickAdd);
   if ($.qaCloseBtn) $.qaCloseBtn.addEventListener('click', closeQuickAdd);
   $.qaSubmitBtn.addEventListener('click', submitTransaction);
+  if ($.qaSheet) $.qaSheet.querySelectorAll('.qa-type-btn').forEach(b => {
+    b.addEventListener('click', () => setQaType(b.dataset.type));
+  });
+  if ($.transferBtn) $.transferBtn.addEventListener('click', openTransferSheet);
+  if ($.transferBackdrop) $.transferBackdrop.addEventListener('click', closeTransferSheet);
+  if ($.transferCloseBtn) $.transferCloseBtn.addEventListener('click', closeTransferSheet);
+  if ($.transferSwapBtn) $.transferSwapBtn.addEventListener('click', swapTransferTargets);
+  if ($.transferSubmitBtn) $.transferSubmitBtn.addEventListener('click', submitTransfer);
+  if ($.dockExport) $.dockExport.addEventListener('click', exportCSV);
   $.qaAmount.addEventListener('keydown', e => { if (e.key === 'Enter') $.qaDesc.focus(); });
   $.qaDesc.addEventListener('keydown', e => { if (e.key === 'Enter') $.qaCategory.focus(); });
   $.qaCategory.addEventListener('change', () => $.qaSubmitBtn.focus());
