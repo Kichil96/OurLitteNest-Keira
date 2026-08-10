@@ -97,10 +97,6 @@ function getCategorySums(data) {
   return sums;
 }
 
-function getTotalSpent(data) {
-  return data.reduce((s, t) => s + t.amount, 0);
-}
-
 function getExpense(data) {
   return data.reduce((s, t) => s + (t.amount > 0 ? t.amount : 0), 0);
 }
@@ -521,7 +517,7 @@ function updateDashboard(data) {
 
   if (expense > currentBudget) {
     $.statusLabel.innerText = 'Total Balance';
-    $.statusValueCard.innerText = '⚠ Budget Burst';
+    $.statusValueCard.innerText = fmtMoney(currentBudget - net);
     $.statusValueCard.classList.add('burst');
     $.statusValueCard.classList.remove('safe');
     $.gaugeFill.classList.add('burst');
@@ -631,6 +627,7 @@ function renderSmartInsight(expense, prevCatSums) {
 
 function renderTopGoal() {
   if (!$.topGoalCard || !$.topGoalBody) return;
+  $.topGoalCard.hidden = false;
   let pots = [];
   try {
     const banks = JSON.parse(localStorage.getItem('ournest_savings_banks') || '[]');
@@ -645,20 +642,20 @@ function renderTopGoal() {
   const inProgress = pots.filter(p => p.target > 0 && p.saved < p.target).sort((a, b) => (b.saved / b.target) - (a.saved / a.target));
   const goal = progress.length ? progress[0] : inProgress[0];
   if (!goal) {
-    $.topGoalBody.innerHTML = '<p class="top-goal-empty">Set a savings goal in the Savings tab to track it here.</p>';
+    $.topGoalBody.innerHTML = '<div class="top-goal-empty">Set a savings goal in the Savings tab to track it here.</div>';
     return;
   }
   const pct = Math.min(Math.round((goal.saved / goal.target) * 100), 100);
   const totalGoals = pots.filter(p => p.target > 0).length;
   $.topGoalBody.innerHTML = `
-    <div class="top-goal-head">
-      <span class="top-goal-name">${esc(goal.name)}</span>
-      <span class="top-goal-meta">${progress.length} of ${totalGoals} done</span>
-    </div>
-    <div class="top-goal-progress"><div class="top-goal-fill" style="width:${pct}%"></div></div>
-    <div class="top-goal-foot">
-      <span>${fmtMoney(goal.saved)}</span>
-      <span>of ${fmtMoney(goal.target)} in ${esc(goal.bank)}</span>
+    <div class="top-goal-icon"><span>🎯</span></div>
+    <div class="top-goal-main">
+      <div class="top-goal-head">
+        <span class="top-goal-name">${esc(goal.name)}</span>
+        <span class="top-goal-pct">${progress.length} of ${totalGoals} done</span>
+      </div>
+      <div class="top-goal-track"><div class="top-goal-fill" style="width:${pct}%"></div></div>
+      <div class="top-goal-sub">${fmtMoney(goal.saved)} of ${fmtMoney(goal.target)} in ${esc(goal.bank)}</div>
     </div>`;
 }
 
@@ -693,6 +690,11 @@ function renderDonut(categoryData, totalSpent, labels) {
   const values = entries.map(e => e[1]);
   const colors = cats.map((_, i) => colorFor(i));
 
+  const rootStyle = getComputedStyle(document.documentElement);
+  const donutBorder = rootStyle.getPropertyValue('--bg2').trim() || '#181C24';
+  const tooltipBg = rootStyle.getPropertyValue('--glass-strong').trim() || '#161B33';
+  const tooltipInk = rootStyle.getPropertyValue('--ink').trim() || '#fff';
+
   $.topCategoryLabel.innerText = cats.length ? cats[0] : '—';
 
   if (categoryChartInst) categoryChartInst.destroy();
@@ -705,7 +707,7 @@ function renderDonut(categoryData, totalSpent, labels) {
         labels: cats,
         datasets: [{
           data: values, backgroundColor: colors, borderWidth: 3,
-          borderColor: '#181C24', hoverOffset: 6
+          borderColor: donutBorder, hoverOffset: 6
         }]
       },
       options: {
@@ -715,9 +717,10 @@ function renderDonut(categoryData, totalSpent, labels) {
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: '#161B33', padding: 10, cornerRadius: 10,
-            bodyFont: { family: 'Inter', weight: '600' },
-            titleFont: { family: 'Inter', weight: '700' },
+            backgroundColor: tooltipBg, padding: 10, cornerRadius: 10,
+            titleColor: tooltipInk, bodyColor: tooltipInk,
+            bodyFont: { family: 'Manrope', weight: '600' },
+            titleFont: { family: 'Manrope', weight: '700' },
             callbacks: { label: (c) => fmtMoney(c.parsed) }
           }
         },
@@ -764,7 +767,7 @@ function renderLegend(categoryData, totalSpent) {
 function setActiveCategory(name) {
   activeCategory = (activeCategory === name) ? null : name;
   const data = getFilteredData();
-  const totalSpent = getTotalSpent(data);
+  const totalSpent = getExpense(data);
   const categorySums = getCategorySums(data);
   renderLegend(categorySums, totalSpent);
   renderCategoryList(categorySums, totalSpent);
@@ -1117,6 +1120,12 @@ function payPeriodStartFor(d) {
 function renderMonthlyChart(allData) {
   const ctx = $.monthlyChart.getContext('2d');
 
+  const rootStyle = getComputedStyle(document.documentElement);
+  const tooltipBg = rootStyle.getPropertyValue('--glass-strong').trim() || '#161B33';
+  const tooltipInk = rootStyle.getPropertyValue('--ink').trim() || '#fff';
+  const gridColor = rootStyle.getPropertyValue('--line').trim() || '#1F2430';
+  const tickColor = rootStyle.getPropertyValue('--ink-faint').trim() || '#6B7280';
+
   const periodTotals = {};
   allData.forEach(t => {
     const start = payPeriodStartFor(t.date).getTime();
@@ -1163,26 +1172,27 @@ function renderMonthlyChart(allData) {
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: '#161B33', padding: 10, cornerRadius: 10,
-            bodyFont: { family: 'Inter', weight: '600' },
+            backgroundColor: tooltipBg, padding: 10, cornerRadius: 10,
+            titleColor: tooltipInk, bodyColor: tooltipInk,
+            bodyFont: { family: 'Manrope', weight: '600' },
             callbacks: { label: (c) => fmtMoney(c.parsed.y) }
           }
         },
         scales: {
           y: {
             display: true,
-            grid: { color: '#1F2430' },
+            grid: { color: gridColor },
             border: { display: false },
             ticks: {
-              font: { size: 10, family: 'Inter', weight: '600' },
-              color: '#6B7280',
+              font: { size: 10, family: 'Manrope', weight: '600' },
+              color: tickColor,
               callback: (v) => 'RM' + Number(v).toLocaleString('en-US')
             }
           },
           x: {
             grid: { display: false },
             border: { display: false },
-            ticks: { font: { size: 11, family: 'Inter', weight: '600' }, color: '#6B7280' }
+            ticks: { font: { size: 11, family: 'Manrope', weight: '600' }, color: tickColor }
           }
         }
       }
