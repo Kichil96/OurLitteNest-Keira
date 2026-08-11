@@ -1396,7 +1396,7 @@ function checkGatePassword() {
 
 function startApp() {
   updatePaydayCountdown();
-  setTimeout(hideLoadingScreen, 4000);
+  const cacheTimer = setTimeout(hideLoadingScreen, 900);
 
   const cached = loadCachedTransactions();
   if (cached.length > 0) {
@@ -1422,9 +1422,11 @@ function startApp() {
   if (cached.length > 0) {
     filterData();
     setSyncLabel('Loaded from cache — refreshing…', false);
+    clearTimeout(cacheTimer);
   }
 
   fetchData();
+  clearTimeout(cacheTimer);
 }
 
 document.addEventListener('DOMContentLoaded', init);
